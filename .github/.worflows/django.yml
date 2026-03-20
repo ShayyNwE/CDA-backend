@@ -1,0 +1,104 @@
+name: Django CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ============================================================
+  #  1. LINT — vérification du code
+  # ============================================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Installer flake8
+        run: pip install flake8
+
+      - name: Lancer flake8
+        run: flake8 . --max-line-length=120 --exclude=migrations,__pycache__,.env
+
+  # ============================================================
+  #  2. SÉCURITÉ — vérification des vulnérabilités
+  # ============================================================
+  security:
+    name: Sécurité
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Installer bandit + safety
+        run: pip install bandit safety
+
+      - name: Vérifier les vulnérabilités des dépendances
+        run: safety check --file requirements.txt
+
+      - name: Vérifier le code avec bandit
+        run: bandit -r store/ -x store/migrations
+
+  # ============================================================
+  #  3. TESTS — lancement des tests Django
+  # ============================================================
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: [lint, security]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: bougie_db
+          POSTGRES_USER: bougie_user
+          POSTGRES_PASSWORD: root
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Créer le fichier .env
+        run: |
+          echo "SECRET_KEY=ci-secret-key-not-for-production" >> .env
+          echo "DB_NAME=bougie_db" >> .env
+          echo "DB_USER=bougie_user" >> .env
+          echo "DB_PASSWORD=root" >> .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+
+      - name: Lancer les migrations
+        run: python manage.py migrate
+
+      - name: Lancer les tests
+        run: python manage.py test
+
