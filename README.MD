@@ -1,6 +1,6 @@
-# 🕯️ E-commerce Bougies
+# 🕯️ BackEnd
 
-Application e-commerce fullstack pour la vente de bougies, développée avec React et Django.
+BackEnd pour une application e-commerce
 
 ---
 
