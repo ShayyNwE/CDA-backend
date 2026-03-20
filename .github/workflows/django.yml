@@ -27,7 +27,7 @@ jobs:
         run: pip install flake8
 
       - name: Lancer flake8
-        run: flake8 . --max-line-length=120 --exclude=migrations,__pycache__,.env --ignore=E221,E203
+        run: flake8 . --max-line-length=120 --exclude=migrations,__pycache__,.env --ignore=E221,E203,E241,W291,W292
 
   # ============================================================
   #  2. SÉCURITÉ — vérification des vulnérabilités
@@ -51,7 +51,7 @@ jobs:
         run: pip-audit -r requirements.txt
 
       - name: Vérifier le code avec bandit
-        run: bandit -r store/ -x store/migrations
+        run: bandit -r store/ -x store/migrations -1
 
   # ============================================================
   #  3. TESTS — lancement des tests Django

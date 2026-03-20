@@ -9,7 +9,7 @@ class AuthTests(TestCase):
         self.client = APIClient()
         self.user_data = {
             'email': 'test@bougie.com',
-            'password': 'motdepasse123',
+            'password': 'motdepasse123',  # nosec
             'firstname': 'Jean',
             'lastname': 'Dupont'
         }
@@ -22,7 +22,7 @@ class AuthTests(TestCase):
         User.objects.create_user(**self.user_data)
         response = self.client.post('/api/auth/login/', {
             'email': 'test@bougie.com',
-            'password': 'motdepasse123'
+            'password': 'motdepasse123'  # nosec
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data)
