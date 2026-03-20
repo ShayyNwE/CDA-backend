@@ -8,11 +8,9 @@ Application e-commerce fullstack pour la vente de bougies, développée avec Rea
 
 | Couche | Technologie |
 |---|---|
-| Front-end | React, React Router, Axios |
 | Back-end | Django, Django REST Framework |
 | Base de données | PostgreSQL |
 | Authentification | JWT (djangorestframework-simplejwt) |
-| Paiements | Stripe |
 | CORS | django-cors-headers |
 
 ---
