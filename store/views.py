@@ -2,10 +2,10 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, Category, Product, Order, OrderDetails
+from .models import User, Category, Product, Order
 from .serializers import (
     UserSerializer, RegisterSerializer, CategorySerializer,
-    ProductSerializer, OrderSerializer, OrderDetailsSerializer
+    ProductSerializer, OrderSerializer
 )
 
 

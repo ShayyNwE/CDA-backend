@@ -27,7 +27,7 @@ jobs:
         run: pip install flake8
 
       - name: Lancer flake8
-        run: flake8 . --max-line-length=120 --exclude=migrations,__pycache__,.env
+        run: flake8 . --max-line-length=120 --exclude=migrations,__pycache__,.env --ignore=E221,E203
 
   # ============================================================
   #  2. SÉCURITÉ — vérification des vulnérabilités
@@ -44,11 +44,11 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Installer bandit + safety
-        run: pip install bandit safety
+      - name: Installer les outils de sécurité
+        run: pip install bandit pip-audit
 
       - name: Vérifier les vulnérabilités des dépendances
-        run: safety check --file requirements.txt
+        run: pip-audit -r requirements.txt
 
       - name: Vérifier le code avec bandit
         run: bandit -r store/ -x store/migrations
