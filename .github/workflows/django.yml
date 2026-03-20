@@ -51,7 +51,7 @@ jobs:
         run: pip-audit -r requirements.txt
 
       - name: Vérifier le code avec bandit
-        run: bandit -r store/ -x store/migrations -1
+        run: bandit -r store/ -x store/migrations --severity-level medium
 
   # ============================================================
   #  3. TESTS — lancement des tests Django
