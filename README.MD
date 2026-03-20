@@ -19,7 +19,6 @@ BackEnd pour une application e-commerce
 
 - Python 3.13+
 - PostgreSQL 18
-- Node.js (pour le front-end React)
 - Git
 
 ---
