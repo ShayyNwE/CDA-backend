@@ -28,7 +28,7 @@ BackEnd pour une application e-commerce
 ### 1. Cloner le projet
 
 ```bash
-git clone https://github.com/ShayyNwE/CDA-backend/edit/main/README.MD
+git clone https://github.com/ShayyNwE/CDA-backend
 cd backend
 ```
 
