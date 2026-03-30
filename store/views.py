@@ -239,7 +239,6 @@ def add_to_cart(request):
 def update_cart_item(request, item_id):
     cart = get_or_create_cart(request)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
-    
     delta = int(request.data.get('delta', 0))
     cart_item.quantity += delta
     if cart_item.quantity <= 0:

@@ -48,7 +48,7 @@ def run_seed():
                     "price": taille["price"],
                     "weight": taille["weight"],
                     "category": cat_parfumee,
-                    "image": f"/images/bougie-{taille['taille']}.jpg", # Optionnel
+                    "image": f"/images/bougie-{taille['taille']}.jpg",
                     "description": f"Bougie artisanale de {taille['taille']} au doux parfum de {parfum}."
                 }
             )
@@ -102,7 +102,6 @@ def run_seed():
 
     print(f"🚀 Terminé ! {compteur} produits indépendants ont été générés dans ta base de données.")
 
+
 if __name__ == '__main__':
-    
-    
     run_seed()
