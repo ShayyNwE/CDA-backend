@@ -1,15 +1,17 @@
 from rest_framework import serializers
-from .models import User, Category, Product, Order, OrderDetails
+from django.contrib.auth.password_validation import validate_password
+from .models import User, Category, Product, Order, OrderDetails, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
         fields = ['user_id', 'email', 'firstname', 'lastname', 'roles']
+        read_only_fields = ['user_id', 'roles']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, validators=[validate_password])
 
     class Meta:
         model  = User
@@ -41,6 +43,7 @@ class OrderDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model  = OrderDetails
         fields = '__all__'
+        read_only_fields = ['detail_id', 'order']
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -49,3 +52,14 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Order
         fields = '__all__'
+        read_only_fields = [
+            'order_id', 'user', 'is_paid',
+            'stripe_session_id', 'shipping_label_url', 'created_at',
+        ]
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Message
+        fields = '__all__'
+        read_only_fields = ['message_id', 'created_at']

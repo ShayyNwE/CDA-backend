@@ -1,0 +1,7 @@
+[flake8]
+max-line-length = 120
+exclude = migrations,__pycache__,.env
+ignore = E221,E203,E241,W291,W292
+
+per-file-ignores =
+    */settings*.py: F401,F403,F405

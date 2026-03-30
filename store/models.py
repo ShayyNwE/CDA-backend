@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.validators import RegexValidator
 
 
 class UserManager(BaseUserManager):
@@ -96,3 +97,27 @@ class OrderDetails(models.Model):
 
     class Meta:
         db_table = "order_details"
+
+
+phone_validator = RegexValidator(
+    regex=r'^\+?[\d\s\-().]{7,20}$',
+    message="Numéro de téléphone invalide."
+)
+
+
+class Message(models.Model):
+    message_id = models.AutoField(primary_key=True)
+    firstname  = models.CharField(max_length=100)
+    lastname   = models.CharField(max_length=100)
+    email      = models.EmailField(max_length=320)
+    phone      = models.CharField(max_length=20, validators=[phone_validator])
+    subject    = models.CharField(max_length=255)
+    message    = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table  = "messages"
+        ordering  = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.subject} — {self.email}"
