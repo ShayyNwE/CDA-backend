@@ -173,3 +173,71 @@ class TestOrders:
         res = auth_client(client, u2).get('/api/orders/')
         assert res.status_code == status.HTTP_200_OK
         assert len(res.data) == 0
+
+# ──────────────────────────────────────────────
+# LOGOUT
+# ──────────────────────────────────────────────
+
+class TestLogout:
+    def test_logout_ok(self, client, user):
+        res = client.post('/api/auth/login/', {
+            'email': user.email, 'password': 'Motdepasse123!'
+        })
+        refresh = res.data['refresh']
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {res.data["access"]}')
+        res = client.post('/api/auth/logout/', {'refresh': refresh})
+        assert res.status_code == status.HTTP_204_NO_CONTENT
+
+    def test_logout_sans_auth(self, client, db):
+        """Un client sans token reçoit 401."""
+        res = client.post('/api/auth/logout/', {'refresh': 'nimporte'})
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_logout_token_invalide(self, client, user):
+        c = auth_client(client, user)
+        res = c.post('/api/auth/logout/', {'refresh': 'tokenbidon'})
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ──────────────────────────────────────────────
+# MESSAGES
+# ──────────────────────────────────────────────
+
+class TestMessages:
+    def test_envoyer_message_sans_auth(self, client, db):
+        res = client.post('/api/messages/', {
+            'firstname': 'Tom',
+            'lastname' : 'Dupont',
+            'email'    : 'tom@test.com',
+            'phone'    : '0612345678',
+            'subject'  : 'Test',
+            'message'  : 'Bonjour !',
+        })
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_lire_messages_user_normal_interdit(self, client, user):
+        res = auth_client(client, user).get('/api/messages/')
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_lire_messages_admin_ok(self, client, admin):
+        res = auth_client(client, admin).get('/api/messages/')
+        assert res.status_code == status.HTTP_200_OK
+
+    def test_message_champs_manquants(self, client, db):
+        res = client.post('/api/messages/', {
+            'firstname': 'Tom',
+            # email manquant
+            'message'  : 'Bonjour',
+        })
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_message_telephone_invalide(self, client, db):
+        res = client.post('/api/messages/', {
+            'firstname': 'Tom',
+            'lastname' : 'Dupont',
+            'email'    : 'tom@test.com',
+            'phone'    : 'abc',
+            'subject'  : 'Test',
+            'message'  : 'Bonjour',
+        })
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
