@@ -1,43 +1,175 @@
-from django.test import TestCase
+# store/tests.py
+import pytest
+from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import User, Category
+from .models import User, Category, Product
 
 
-class AuthTests(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.user_data = {
-            'email': 'test@bougie.com',
-            'password': 'motdepasse123',  # nosec
-            'firstname': 'Jean',
-            'lastname': 'Dupont'
-        }
+@pytest.fixture
+def client():
+    return APIClient()
 
-    def test_register(self):
-        response = self.client.post('/api/auth/register/', self.user_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_login(self):
-        User.objects.create_user(**self.user_data)
-        response = self.client.post('/api/auth/login/', {
-            'email': 'test@bougie.com',
-            'password': 'motdepasse123'  # nosec
+@pytest.fixture
+def user(db):
+    return User.objects.create_user(email='user@test.com', password='Motdepasse123!')
+
+
+@pytest.fixture
+def admin(db):
+    return User.objects.create_superuser(email='admin@test.com', password='Motdepasse123!')
+
+
+@pytest.fixture
+def category(db):
+    return Category.objects.create(name='Test catégorie')
+
+
+@pytest.fixture
+def product(db, category):
+    return Product.objects.create(
+        name='Produit test', price=1000, category=category
+    )
+
+
+def auth_client(client, user):
+    """Retourne un client authentifié avec le token de l'user donné."""
+    res = client.post('/api/auth/login/', {'email': user.email, 'password': 'Motdepasse123!'})
+    client.credentials(HTTP_AUTHORIZATION=f'Bearer {res.data["access"]}')
+    return client
+
+
+# ──────────────────────────────────────────────
+# AUTH
+# ──────────────────────────────────────────────
+
+class TestRegister:
+    def test_register_ok(self, client, db):
+        res = client.post('/api/auth/register/', {
+            'email': 'nouveau@test.com',
+            'password': 'MotDePasseSecurise1!',
+            'firstname': 'Tom',
+            'lastname': 'Dupont',
         })
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_register_mot_de_passe_trop_court(self, client, db):
+        res = client.post('/api/auth/register/', {
+            'email': 'x@test.com',
+            'password': '123',
+        })
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_register_email_duplique(self, client, user):
+        res = client.post('/api/auth/register/', {
+            'email': 'user@test.com',
+            'password': 'MotDePasseSecurise1!',
+        })
+        assert res.status_code == status.HTTP_400_BAD_REQUEST
 
 
-class ProductTests(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.category = Category.objects.create(name='Bougies parfumées')
+class TestLogin:
+    def test_login_ok(self, client, user):
+        res = client.post('/api/auth/login/', {
+            'email': 'user@test.com',
+            'password': 'Motdepasse123!',
+        })
+        assert res.status_code == status.HTTP_200_OK
+        assert 'access' in res.data
+        assert 'refresh' in res.data
 
-    def test_liste_produits(self):
-        response = self.client.get('/api/products/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_login_mauvais_mot_de_passe(self, client, user):
+        res = client.post('/api/auth/login/', {
+            'email': 'user@test.com',
+            'password': 'mauvais',
+        })
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_liste_categories(self):
-        response = self.client.get('/api/categories/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_login_email_inexistant(self, client, db):
+        res = client.post('/api/auth/login/', {
+            'email': 'fantome@test.com',
+            'password': 'nimporte',
+        })
+        # Même message d'erreur que si le mdp est faux (pas de fuite d'info)
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_login_compte_inactif(self, client, db):
+        u = User.objects.create_user(email='inactif@test.com', password='Motdepasse123!')
+        u.is_active = False
+        u.save()
+        res = client.post('/api/auth/login/', {'email': 'inactif@test.com', 'password': 'Motdepasse123!'})
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ──────────────────────────────────────────────
+# PROFIL
+# ──────────────────────────────────────────────
+
+class TestProfile:
+    def test_profil_non_authentifie(self, client):
+        res = client.get('/api/auth/profile/')
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_profil_authentifie(self, client, user):
+        res = auth_client(client, user).get('/api/auth/profile/')
+        assert res.status_code == status.HTTP_200_OK
+        assert res.data['email'] == user.email
+
+    def test_user_ne_peut_pas_modifier_ses_roles(self, client, user):
+        res = auth_client(client, user).patch('/api/auth/profile/', {'roles': ['ROLE_ADMIN']})
+        assert res.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert 'ROLE_ADMIN' not in user.roles
+
+
+# ──────────────────────────────────────────────
+# PRODUITS — contrôle d'accès
+# ──────────────────────────────────────────────
+
+class TestProducts:
+    def test_liste_produits_sans_auth(self, client, product):
+        res = client.get('/api/products/')
+        assert res.status_code == status.HTTP_200_OK
+
+    def test_creation_produit_user_normal_interdit(self, client, user, category):
+        res = auth_client(client, user).post('/api/products/', {
+            'name': 'Produit piraté',
+            'price': 1,
+            'category': category.category_id,
+        })
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_creation_produit_admin_ok(self, client, admin, category):
+        res = auth_client(client, admin).post('/api/products/', {
+            'name': 'Produit admin',
+            'price': 500,
+            'category': category.category_id,
+        })
+        assert res.status_code == status.HTTP_201_CREATED
+
+    def test_suppression_produit_user_normal_interdit(self, client, user, product):
+        res = auth_client(client, user).delete(f'/api/products/{product.id}/')
+        assert res.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ──────────────────────────────────────────────
+# COMMANDES — isolation entre users
+# ──────────────────────────────────────────────
+
+class TestOrders:
+    def test_commandes_non_authentifie(self, client):
+        res = client.get('/api/orders/')
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_user_ne_voit_pas_commandes_autres(self, client, db):
+        u1 = User.objects.create_user(email='u1@test.com', password='Motdepasse123!')
+        u2 = User.objects.create_user(email='u2@test.com', password='Motdepasse123!')
+
+        from .models import Order
+        Order.objects.create(reference='REF-001', user=u1)
+
+        # u2 ne doit pas voir la commande de u1
+        res = auth_client(client, u2).get('/api/orders/')
+        assert res.status_code == status.HTTP_200_OK
+        assert len(res.data) == 0
