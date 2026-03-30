@@ -5,6 +5,9 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 load_dotenv()
 
 SECRET_KEY = os.getenv('SECRET_KEY')
