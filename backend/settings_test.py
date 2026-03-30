@@ -1,5 +1,4 @@
-# backend/settings_test.py
-from .settings import *
+from .settings import * # noqua: F401, F403
 
 DATABASES = {
     "default": {

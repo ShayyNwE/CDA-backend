@@ -1,6 +1,4 @@
-# store/tests.py
 import pytest
-from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from .models import User, Category, Product
@@ -202,6 +200,7 @@ class TestLogout:
 # ──────────────────────────────────────────────
 # MESSAGES
 # ──────────────────────────────────────────────
+
 
 class TestMessages:
     def test_envoyer_message_sans_auth(self, client, db):

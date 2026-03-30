@@ -104,6 +104,7 @@ phone_validator = RegexValidator(
     message="Numéro de téléphone invalide."
 )
 
+
 class Message(models.Model):
     message_id = models.AutoField(primary_key=True)
     firstname  = models.CharField(max_length=100)
