@@ -9,7 +9,7 @@ on:
 jobs:
 
   # ============================================================
-  #  1. LINT
+  # 1. LINT
   # ============================================================
   lint:
     name: Lint (flake8)
@@ -31,7 +31,7 @@ jobs:
         run: flake8 .
 
   # ============================================================
-  #  2. SECURITY
+  # 2. SECURITY
   # ============================================================
   security:
     name: Security checks
@@ -56,7 +56,7 @@ jobs:
         run: bandit -r store/ -x store/migrations --severity-level medium
 
   # ============================================================
-  #  3. TESTS
+  # 3. TESTS (PostgreSQL + pytest)
   # ============================================================
   test:
     name: Tests
@@ -73,7 +73,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U bougie_user"
+          --health-cmd="pg_isready -U bougie_user -d bougie_db"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -86,6 +86,7 @@ jobs:
       DB_HOST: localhost
       DB_PORT: 5432
       DB_SSLMODE: disable
+      DJANGO_SETTINGS_MODULE: backend.settings_test  # Indispensable pour pytest-django
 
     steps:
       - uses: actions/checkout@v4
@@ -97,11 +98,11 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest pytest-django psycopg2-binary
 
       - name: Wait for Postgres
         run: |
-          until pg_isready -h localhost -p 5432 -U bougie_user; do
+          until pg_isready -h localhost -p 5432 -U bougie_user -d bougie_db; do
             echo "Waiting for Postgres..."
             sleep 2
           done
@@ -109,5 +110,5 @@ jobs:
       - name: Run migrations
         run: python manage.py migrate --settings=backend.settings_test
 
-      - name: Run tests
-        run: python manage.py test --settings=backend.settings_test
+      - name: Run tests with pytest
+        run: pytest store/tests.py -v
