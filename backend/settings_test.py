@@ -1,4 +1,4 @@
-from .settings import * # noqua: F401, F403
+from .settings import *  # noqua: F401, F403
 
 DATABASES = {
     "default": {

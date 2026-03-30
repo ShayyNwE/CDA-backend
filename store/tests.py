@@ -42,6 +42,7 @@ def auth_client(client, user):
 # AUTH
 # ──────────────────────────────────────────────
 
+
 class TestRegister:
     def test_register_ok(self, client, db):
         res = client.post('/api/auth/register/', {
@@ -104,6 +105,7 @@ class TestLogin:
 # PROFIL
 # ──────────────────────────────────────────────
 
+
 class TestProfile:
     def test_profil_non_authentifie(self, client):
         res = client.get('/api/auth/profile/')
@@ -124,6 +126,7 @@ class TestProfile:
 # ──────────────────────────────────────────────
 # PRODUITS — contrôle d'accès
 # ──────────────────────────────────────────────
+
 
 class TestProducts:
     def test_liste_produits_sans_auth(self, client, product):
@@ -155,6 +158,7 @@ class TestProducts:
 # COMMANDES — isolation entre users
 # ──────────────────────────────────────────────
 
+
 class TestOrders:
     def test_commandes_non_authentifie(self, client):
         res = client.get('/api/orders/')
@@ -175,6 +179,7 @@ class TestOrders:
 # ──────────────────────────────────────────────
 # LOGOUT
 # ──────────────────────────────────────────────
+
 
 class TestLogout:
     def test_logout_ok(self, client, user):
