@@ -99,6 +99,36 @@ class OrderDetails(models.Model):
         db_table = "order_details"
 
 
+# --- MODÈLES DU PANIER ---
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name="cart")
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "cart"
+
+    def __str__(self):
+        if self.user:
+            return f"Panier de {self.user.email}"
+        return f"Panier visiteur {self.session_key}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, related_name="items", on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    custom_name = models.CharField(max_length=7, null=True, blank=True)
+    custom_scent = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        db_table = "cart_item"
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name}"
+
+
+# --- MODÈLES MESSAGERIE (CONTACT) ---
 phone_validator = RegexValidator(
     regex=r'^\+?[\d\s\-().]{7,20}$',
     message="Numéro de téléphone invalide."

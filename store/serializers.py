@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Category, Product, Order, OrderDetails, Message
+from .models import User, Category, Product, Order, OrderDetails, CartItem, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -58,6 +58,22 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
 
+# --- SÉRIALISEURS PANIER (CART) ---
+class CartProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'price', 'image', 'is_customizable']
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product = CartProductSerializer(read_only=True)
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'product', 'quantity', 'custom_name', 'custom_scent']
+
+
+# --- SÉRIALISEUR MESSAGERIE (CONTACT) ---
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Message

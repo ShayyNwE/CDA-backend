@@ -1,4 +1,6 @@
 from django.urls import path
+from . import views
+from .views import api_health_check
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     RegisterView, LoginView, LogoutView, ProfileView,
@@ -27,4 +29,13 @@ urlpatterns = [
 
     # Messages
     path('messages/',          MessageView.as_view(),           name='messages'),
+
+    # Health Check
+    path('health/',            api_health_check,                name='api_health_check'),
+
+    # Panier
+    path('cart/',                      views.get_cart,          name='api_get_cart'),
+    path('cart/add/',                  views.add_to_cart,       name='api_add_to_cart'),
+    path('cart/update/<int:item_id>/', views.update_cart_item,  name='api_update_cart_item'),
+    path('cart/remove/<int:item_id>/', views.remove_cart_item,  name='api_remove_cart_item'),
 ]
