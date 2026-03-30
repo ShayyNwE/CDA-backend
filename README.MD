@@ -28,8 +28,8 @@ BackEnd pour une application e-commerce
 ### 1. Cloner le projet
 
 ```bash
-git clone https://github.com/TON_USERNAME/ecommerce-bougie.git
-cd ecommerce-bougie
+git clone https://github.com/ShayyNwE/CDA-backend
+cd backend
 ```
 
 ### 2. Installer les dépendances Python
