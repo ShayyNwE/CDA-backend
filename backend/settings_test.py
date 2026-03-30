@@ -1,6 +1,8 @@
 from .settings import *
 
 
+DATABASES['default']['OPTIONS'] = {'sslmode': 'disable'}
+
 LOGGING['handlers'].pop('file', None)
 
 DATABASES = {
