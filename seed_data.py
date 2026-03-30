@@ -1,10 +1,9 @@
 import os
 import django
+from store.models import Category, Product
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
-
-from store.models import Category, Product
 
 
 def run_seed():
@@ -22,7 +21,8 @@ def run_seed():
         "Fraise", "Pomme d’amour", "Bouquet Solaire"
     ]
     parfums_naissance = parfums_standards + ["Musty"]
-    couleurs_naissance = ["Jaune", "Bleu Clair", "Bleu", "Rose Clair", "Rose", "Fushia", "Orange", "Gris", "Vert Foncé", "Terracotta", "Crème", "Beige", "Rouge", "Violet"]
+    couleurs_naissance = ["Jaune", "Bleu Clair", "Bleu", "Rose Clair", "Rose", "Fushia", "Orange", "Gris", 
+                          "Vert Foncé", "Terracotta", "Crème", "Beige", "Rouge", "Violet"]
 
     # --- CATÉGORIES ---
     cat_parfumee, _ = Category.objects.get_or_create(name="Bougies Parfumées")
@@ -96,10 +96,13 @@ def run_seed():
     compteur += 1
 
     # 4. COFFRETS (Idem, on garde ça simple)
-    Product.objects.update_or_create(name="Coffret taille M (3 bougies 90g)", defaults={"price": 2400, "weight": 495, "category": cat_coffret})
+    Product.objects.update_or_create(name="Coffret taille M (3 bougies 90g)", 
+                                     defaults={"price": 2400, "weight": 495, "category": cat_coffret})
     compteur += 1
 
     print(f"🚀 Terminé ! {compteur} produits indépendants ont été générés dans ta base de données.")
 
 if __name__ == '__main__':
+    
+    
     run_seed()

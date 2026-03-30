@@ -118,7 +118,6 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name="items", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-    
     custom_name = models.CharField(max_length=7, null=True, blank=True)
     custom_scent = models.CharField(max_length=50, null=True, blank=True)
 
@@ -134,6 +133,7 @@ phone_validator = RegexValidator(
     regex=r'^\+?[\d\s\-().]{7,20}$',
     message="Numéro de téléphone invalide."
 )
+
 
 class Message(models.Model):
     message_id = models.AutoField(primary_key=True)

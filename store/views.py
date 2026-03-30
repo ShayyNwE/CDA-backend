@@ -172,7 +172,6 @@ class OrderDetailView(generics.RetrieveAPIView):
 
 def get_slider_products(request):
     products = Product.objects.all()[:10] 
-  
     data = []
     for p in products:
         data.append({
@@ -181,7 +180,6 @@ def get_slider_products(request):
             "price": p.price,
             "image": p.image if p.image else "/images/bougiesParf.png"
         })
-        
     return JsonResponse(data, safe=False)
 
 
@@ -194,12 +192,14 @@ def get_or_create_cart(request):
         cart, created = Cart.objects.get_or_create(session_key=request.session.session_key)
     return cart
 
+
 @api_view(['GET'])
 def get_cart(request):
     cart = get_or_create_cart(request)
     items = cart.items.all()
     serializer = CartItemSerializer(items, many=True)
     return Response(serializer.data)
+
 
 @api_view(['POST'])
 def add_to_cart(request):
@@ -234,6 +234,7 @@ def add_to_cart(request):
     serializer = CartItemSerializer(items, many=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 @api_view(['PATCH'])
 def update_cart_item(request, item_id):
     cart = get_or_create_cart(request)
@@ -241,7 +242,6 @@ def update_cart_item(request, item_id):
     
     delta = int(request.data.get('delta', 0))
     cart_item.quantity += delta
-    
     if cart_item.quantity <= 0:
         cart_item.delete()
     else:
@@ -250,6 +250,7 @@ def update_cart_item(request, item_id):
     items = cart.items.all()
     serializer = CartItemSerializer(items, many=True)
     return Response(serializer.data)
+
 
 @api_view(['DELETE'])
 def remove_cart_item(request, item_id):
