@@ -2,62 +2,64 @@ name: Django CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
 
   # ============================================================
-  #  1. LINT — vérification du code
+  #  1. LINT
   # ============================================================
   lint:
-    name: Lint
+    name: Lint (flake8)
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: 'pip'
 
-      - name: Installer flake8
+      - name: Install dependencies
         run: pip install flake8
 
-      - name: Lancer flake8
-        run: flake8 . --max-line-length=120 --exclude=migrations,__pycache__,.env --ignore=E221,E203,E241,W291,W292
+      - name: Run flake8
+        run: flake8 .
 
   # ============================================================
-  #  2. SÉCURITÉ — vérification des vulnérabilités
+  #  2. SECURITY
   # ============================================================
   security:
-    name: Sécurité
+    name: Security checks
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: 'pip'
 
-      - name: Installer les outils de sécurité
+      - name: Install tools
         run: pip install bandit pip-audit
 
-      - name: Vérifier les vulnérabilités des dépendances
+      - name: Audit dependencies
         run: pip-audit -r requirements.txt
 
-      - name: Vérifier le code avec bandit
+      - name: Run bandit
         run: bandit -r store/ -x store/migrations --severity-level medium
 
   # ============================================================
-  #  3. TESTS — lancement des tests Django
+  #  3. TESTS
   # ============================================================
   test:
-    name: Tests
+    name: Tests (Django)
     runs-on: ubuntu-latest
     needs: [lint, security]
 
@@ -71,34 +73,40 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U bougie_user"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      SECRET_KEY: ci-secret-key-not-for-production
+      DB_NAME: bougie_db
+      DB_USER: bougie_user
+      DB_PASSWORD: root
+      DB_HOST: localhost
+      DB_PORT: 5432
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Installer Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: 'pip'
 
-      - name: Installer les dépendances
+      - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Créer le fichier .env
+      - name: Wait for Postgres
         run: |
-          echo "SECRET_KEY=ci-secret-key-not-for-production" >> .env
-          echo "DB_NAME=bougie_db" >> .env
-          echo "DB_USER=bougie_user" >> .env
-          echo "DB_PASSWORD=root" >> .env
-          echo "DB_HOST=localhost" >> .env
-          echo "DB_PORT=5432" >> .env
+          until pg_isready -h localhost -p 5432 -U bougie_user; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
 
-      - name: Lancer les migrations
+      - name: Run migrations
         run: python manage.py migrate
 
-      - name: Lancer les tests
+      - name: Run tests
         run: python manage.py test
-
