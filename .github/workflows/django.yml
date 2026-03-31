@@ -108,7 +108,7 @@ jobs:
           done
 
       - name: Run migrations
-        run: python manage.py migrate --settings=backend.settings_test
+        run: python manage.py migrate
 
       - name: Run tests with pytest
         run: pytest store/tests.py -v
