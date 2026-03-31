@@ -98,13 +98,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+if os.getenv("DATABASE_URL"):  # Prod (Render)
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True  # SSL obligatoire sur Render
+        )
+    }
+else:  # Local dev
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME", "bougie_db"),
+            "USER": os.getenv("DB_USER", "bougie_user"),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+            "PORT": os.getenv("DB_PORT", "5432"),
+            "OPTIONS": {
+                "sslmode": os.getenv("DB_SSLMODE", "disable"),  # désactive SSL
+            },
+        }
+    }
 
 AUTH_USER_MODEL = "store.User"
 
