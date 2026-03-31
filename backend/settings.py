@@ -98,15 +98,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-if os.getenv("DATABASE_URL"):  # Prod (Render)
+if os.getenv("DATABASE_URL"):
     DATABASES = {
         "default": dj_database_url.config(
             default=os.getenv("DATABASE_URL"),
             conn_max_age=600,
-            ssl_require=True  # SSL obligatoire sur Render
+            ssl_require=True,  # Render exige SSL
         )
     }
-else:  # Local dev
+else:
+    # Local dev
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -115,9 +116,6 @@ else:  # Local dev
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
             "HOST": os.getenv("DB_HOST", "127.0.0.1"),
             "PORT": os.getenv("DB_PORT", "5432"),
-            "OPTIONS": {
-                "sslmode": os.getenv("DB_SSLMODE", "disable"),  # désactive SSL
-            },
         }
     }
 
