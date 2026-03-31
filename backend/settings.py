@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'store',
     'rest_framework_simplejwt.token_blacklist',
+    'admin_interface',
+    'colorfield',
 ]
 
 MIDDLEWARE = [
