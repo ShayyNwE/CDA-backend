@@ -1,4 +1,3 @@
-# backend/settings_test.py
 from .settings import *
 
 DEBUG = False
@@ -13,6 +12,11 @@ DATABASES = {
         "PORT": "5432",
     }
 }
+
+# ✅ IMPORTANT pour éviter les 301 en tests
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
