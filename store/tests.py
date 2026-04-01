@@ -300,7 +300,7 @@ class TestCartLoginMerge:
         assert res.status_code == 200
         assert len(res.data) == 1
         assert res.data[0]['quantity'] == 2
-        
+
 
 class TestCartEmpty:
     @pytest.mark.django_db
