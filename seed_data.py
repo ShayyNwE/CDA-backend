@@ -5,7 +5,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
 
-from store.models import Category, Product
+from store.models import Category, Product  # noqa: E402
 
 
 def run_seed():
