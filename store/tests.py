@@ -273,15 +273,16 @@ class TestCartGuest:
         # ajouter d'abord
         client.post('/api/cart/add/', {'product_id': product.id, 'quantity': 2})
         item_id = client.get('/api/cart/').data[0]['id']
-        # patch pour augmenter
-        res = client.patch(f'/api/cart/{item_id}/', {'delta': 3})
+        # patch pour augmenter → on change le chemin pour match urls.py
+        res = client.patch(f'/api/cart/update/{item_id}/', {'delta': 3})
         assert res.status_code == 200
         assert res.data[0]['quantity'] == 5
 
     def test_guest_supprime_item(self, client, product):
         client.post('/api/cart/add/', {'product_id': product.id})
         item_id = client.get('/api/cart/').data[0]['id']
-        res = client.delete(f'/api/cart/{item_id}/')
+        # delete → on change le chemin pour match urls.py
+        res = client.delete(f'/api/cart/remove/{item_id}/')
         assert res.status_code == 204
         assert client.get('/api/cart/').data == []
 
