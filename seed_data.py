@@ -1,9 +1,11 @@
 import os
 import django
-from store.models import Category, Product
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
+
+
+from store.models import Category, Product
 
 
 def run_seed():
