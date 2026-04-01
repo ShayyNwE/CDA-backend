@@ -251,6 +251,16 @@ class TestMessages:
 # PANIER
 # ──────────────────────────────────────────────
 
+@pytest.fixture
+def client_guest():
+    """
+    Client REST Framework avec session pour simuler un guest.
+    """
+    client = APIClient()
+    # On fait un simple GET pour créer la session
+    client.get('/')  
+    return client
+
 
 class TestCartGuest:
     def test_guest_ajoute_produit(self, client, product):
