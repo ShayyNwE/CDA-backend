@@ -52,22 +52,38 @@ class LoginView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            logger.warning(f"Tentative de login avec email inconnu : {email}")
             return error_response
 
         if not user.check_password(password):
-            logger.warning(f"Mot de passe incorrect pour : {email}")
             return error_response
 
         if not user.is_active:
-            logger.warning(f"Tentative de login sur compte inactif : {email}")
-            return Response(
-                {'error': 'Compte désactivé'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
+
+        # --- Ici, l'utilisateur est authentifié, on peut fusionner les paniers ---
+        session_key = request.session.session_key
+        if session_key:
+            try:
+                guest_cart = Cart.objects.get(session_key=session_key, user__isnull=True)
+                user_cart, created = Cart.objects.get_or_create(user=user)
+                for item in guest_cart.items.all():
+                    existing_item = CartItem.objects.filter(
+                        cart=user_cart,
+                        product=item.product,
+                        custom_name=item.custom_name,
+                        custom_scent=item.custom_scent
+                    ).first()
+                    if existing_item:
+                        existing_item.quantity += item.quantity
+                        existing_item.save()
+                    else:
+                        item.cart = user_cart
+                        item.save()
+                guest_cart.delete()
+            except Cart.DoesNotExist:
+                pass
 
         refresh = RefreshToken.for_user(user)
-        logger.info(f"Login réussi : {email}")
         return Response({
             'access' : str(refresh.access_token),
             'refresh': str(refresh),
