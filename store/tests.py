@@ -245,3 +245,66 @@ class TestMessages:
             'message'  : 'Bonjour',
         })
         assert res.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ──────────────────────────────────────────────
+# PANIER
+# ──────────────────────────────────────────────
+
+@pytest.fixture
+def client_guest():
+    """
+    Client REST Framework avec session pour simuler un guest.
+    """
+    client = APIClient()
+    # On fait un simple GET pour créer la session
+    client.get('/')  
+    return client
+
+
+class TestCartGuest:
+    def test_guest_ajoute_produit(self, client, product):
+        res = client.post('/api/cart/add/', {'product_id': product.id, 'quantity': 2})
+        assert res.status_code == 201
+        assert len(res.data) == 1
+        assert res.data[0]['quantity'] == 2
+
+    def test_guest_modifie_quantite(self, client, product):
+        # ajouter d'abord
+        client.post('/api/cart/add/', {'product_id': product.id, 'quantity': 2})
+        item_id = client.get('/api/cart/').data[0]['id']
+        # patch pour augmenter → on change le chemin pour match urls.py
+        res = client.patch(f'/api/cart/update/{item_id}/', {'delta': 3})
+        assert res.status_code == 200
+        assert res.data[0]['quantity'] == 5
+
+    def test_guest_supprime_item(self, client, product):
+        client.post('/api/cart/add/', {'product_id': product.id})
+        item_id = client.get('/api/cart/').data[0]['id']
+        # delete → on change le chemin pour match urls.py
+        res = client.delete(f'/api/cart/remove/{item_id}/')
+        assert res.status_code == 204
+        assert client.get('/api/cart/').data == []
+
+
+class TestCartLoginMerge:
+    def test_merge_panier_guest_vers_user(self, client, user, product):
+        # Guest ajoute un produit
+        client.post('/api/cart/add/', {'product_id': product.id, 'quantity': 2})
+        # login
+        res = client.post('/api/auth/login/', {'email': user.email, 'password': 'Motdepasse123!'})
+        token = res.data['access']
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        # vérifier que le panier de l'utilisateur contient maintenant l'article du guest
+        res = client.get('/api/cart/')
+        assert res.status_code == 200
+        assert len(res.data) == 1
+        assert res.data[0]['quantity'] == 2
+
+
+class TestCartEmpty:
+    @pytest.mark.django_db
+    def test_get_cart_vide(self, client):
+        res = client.get('/api/cart/')
+        assert res.status_code == 200
+        assert res.data == []
