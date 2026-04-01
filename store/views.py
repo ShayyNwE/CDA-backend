@@ -210,6 +210,7 @@ def get_or_create_cart(request):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def get_cart(request):
     cart = get_or_create_cart(request)
     items = cart.items.all()
@@ -218,6 +219,7 @@ def get_cart(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.AllowAny])
 def add_to_cart(request):
     cart = get_or_create_cart(request)
     product_id = request.data.get('product_id')
@@ -252,6 +254,7 @@ def add_to_cart(request):
 
 
 @api_view(['PATCH'])
+@permission_classes([permissions.AllowAny])
 def update_cart_item(request, item_id):
     cart = get_or_create_cart(request)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
@@ -268,6 +271,7 @@ def update_cart_item(request, item_id):
 
 
 @api_view(['DELETE'])
+@permission_classes([permissions.AllowAny])
 def remove_cart_item(request, item_id):
     cart = get_or_create_cart(request)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
