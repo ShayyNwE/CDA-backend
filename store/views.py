@@ -2,7 +2,7 @@ import logging
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -52,22 +52,38 @@ class LoginView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            logger.warning(f"Tentative de login avec email inconnu : {email}")
             return error_response
 
         if not user.check_password(password):
-            logger.warning(f"Mot de passe incorrect pour : {email}")
             return error_response
 
         if not user.is_active:
-            logger.warning(f"Tentative de login sur compte inactif : {email}")
-            return Response(
-                {'error': 'Compte désactivé'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
+
+        # --- Ici, l'utilisateur est authentifié, on peut fusionner les paniers ---
+        session_key = request.session.session_key
+        if session_key:
+            try:
+                guest_cart = Cart.objects.get(session_key=session_key, user__isnull=True)
+                user_cart, created = Cart.objects.get_or_create(user=user)
+                for item in guest_cart.items.all():
+                    existing_item = CartItem.objects.filter(
+                        cart=user_cart,
+                        product=item.product,
+                        custom_name=item.custom_name,
+                        custom_scent=item.custom_scent
+                    ).first()
+                    if existing_item:
+                        existing_item.quantity += item.quantity
+                        existing_item.save()
+                    else:
+                        item.cart = user_cart
+                        item.save()
+                guest_cart.delete()
+            except Cart.DoesNotExist:
+                pass
 
         refresh = RefreshToken.for_user(user)
-        logger.info(f"Login réussi : {email}")
         return Response({
             'access' : str(refresh.access_token),
             'refresh': str(refresh),
@@ -194,6 +210,7 @@ def get_or_create_cart(request):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def get_cart(request):
     cart = get_or_create_cart(request)
     items = cart.items.all()
@@ -202,6 +219,7 @@ def get_cart(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.AllowAny])
 def add_to_cart(request):
     cart = get_or_create_cart(request)
     product_id = request.data.get('product_id')
@@ -236,6 +254,7 @@ def add_to_cart(request):
 
 
 @api_view(['PATCH'])
+@permission_classes([permissions.AllowAny])
 def update_cart_item(request, item_id):
     cart = get_or_create_cart(request)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
@@ -252,6 +271,7 @@ def update_cart_item(request, item_id):
 
 
 @api_view(['DELETE'])
+@permission_classes([permissions.AllowAny])
 def remove_cart_item(request, item_id):
     cart = get_or_create_cart(request)
     cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
