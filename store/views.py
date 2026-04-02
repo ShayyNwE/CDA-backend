@@ -123,12 +123,22 @@ class LogoutView(APIView):
             )
 
 
+# 🔑 VOICI LA CLASSE CORRIGÉE POUR LE PROFIL
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         return self.request.user
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        # On formate la réponse exactement comme le Front l'attend
+        return Response({
+            "user": serializer.data,
+            "orders": []  # Plus tard, on récupérera les commandes ici
+        })
 
     def update(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -141,7 +151,9 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
-        return Response(serializer.data)
+        return Response({
+            "user": serializer.data
+        })
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
