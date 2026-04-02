@@ -71,6 +71,7 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
 
+        # --- Ici, l'utilisateur est authentifié, on peut fusionner les paniers ---
         session_key = request.session.session_key
         if session_key:
             try:
@@ -294,8 +295,6 @@ class MessageView(generics.ListCreateAPIView):
     queryset           = Message.objects.all()
 
     def get_permissions(self):
-        # Envoyer un message : tout le monde (formulaire de contact public)
-        # Lire les messages : admins uniquement
         if self.request.method == 'POST':
             return [permissions.AllowAny()]
         return [permissions.IsAdminUser()]
