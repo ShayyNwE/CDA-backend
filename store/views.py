@@ -32,6 +32,17 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes   = [AnonRateThrottle]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access' : str(refresh.access_token),
+            'refresh': str(refresh),
+        }, status=status.HTTP_201_CREATED)
+
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -284,8 +295,6 @@ class MessageView(generics.ListCreateAPIView):
     queryset           = Message.objects.all()
 
     def get_permissions(self):
-        # Envoyer un message : tout le monde (formulaire de contact public)
-        # Lire les messages : admins uniquement
         if self.request.method == 'POST':
             return [permissions.AllowAny()]
         return [permissions.IsAdminUser()]
