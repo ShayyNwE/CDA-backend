@@ -114,7 +114,8 @@ class TestProfile:
     def test_profil_authentifie(self, client, user):
         res = auth_client(client, user).get('/api/auth/profile/')
         assert res.status_code == status.HTTP_200_OK
-        assert res.data['email'] == user.email
+        # 🔑 MODIFICATION ICI : On vérifie l'email dans l'objet 'user' de la réponse
+        assert res.data['user']['email'] == user.email
 
     def test_user_ne_peut_pas_modifier_ses_roles(self, client, user):
         res = auth_client(client, user).patch('/api/auth/profile/', {'roles': ['ROLE_ADMIN']})
