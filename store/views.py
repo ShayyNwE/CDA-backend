@@ -32,6 +32,17 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes   = [AnonRateThrottle]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'access' : str(refresh.access_token),
+            'refresh': str(refresh),
+        }, status=status.HTTP_201_CREATED)
+
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -60,7 +71,6 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
 
-        # --- Ici, l'utilisateur est authentifié, on peut fusionner les paniers ---
         session_key = request.session.session_key
         if session_key:
             try:
