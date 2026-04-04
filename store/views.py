@@ -132,9 +132,10 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
+        # On formate la réponse exactement comme le Front l'attend
         return Response({
             "user": serializer.data,
-            "orders": []
+            "orders": []  # Plus tard, on récupérera les commandes ici
         })
 
     def update(self, request, *args, **kwargs):
@@ -176,7 +177,6 @@ class ProductListView(generics.ListCreateAPIView):
         # 1. Filtre par Catégorie
         category = self.request.query_params.get('category')
         if category:
-            # Assure-toi que "category__name" correspond bien à la structure de tes modèles
             queryset = queryset.filter(category__name__icontains=category) 
 
         # 2. Filtre par Prix Minimum
