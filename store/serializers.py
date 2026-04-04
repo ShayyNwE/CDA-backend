@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User, Category, Product, Order, OrderDetails, CartItem, Message
@@ -16,6 +17,15 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model  = User
         fields = ['email', 'password', 'firstname', 'lastname']
+
+    def validate_password(self, value):
+        regex = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{12,}$'
+        
+        if not re.match(regex, value):
+            raise serializers.ValidationError(
+                "Le mot de passe doit contenir au moins 12 caractères. Une majuscule, une minuscule, un chiffre et un caractère spécial (@$!%*?&#)."
+            )
+        return value
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
@@ -58,7 +68,6 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
 
-# --- SÉRIALISEURS PANIER (CART) ---
 class CartProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
@@ -73,7 +82,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'product', 'quantity', 'custom_name', 'custom_scent']
 
 
-# --- SÉRIALISEUR MESSAGERIE (CONTACT) ---
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Message

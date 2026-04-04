@@ -71,7 +71,6 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
 
-        # --- Ici, l'utilisateur est authentifié, on peut fusionner les paniers ---
         session_key = request.session.session_key
         if session_key:
             try:
@@ -123,7 +122,6 @@ class LogoutView(APIView):
             )
 
 
-# 🔑 VOICI LA CLASSE CORRIGÉE POUR LE PROFIL
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -134,7 +132,6 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        # On formate la réponse exactement comme le Front l'attend
         return Response({
             "user": serializer.data,
             "orders": []  # Plus tard, on récupérera les commandes ici
