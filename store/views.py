@@ -122,7 +122,6 @@ class LogoutView(APIView):
             )
 
 
-# 🔑 VOICI LA CLASSE CORRIGÉE POUR LE PROFIL
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -133,10 +132,9 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        # On formate la réponse exactement comme le Front l'attend
         return Response({
             "user": serializer.data,
-            "orders": []  # Plus tard, on récupérera les commandes ici
+            "orders": []
         })
 
     def update(self, request, *args, **kwargs):
@@ -169,18 +167,29 @@ class CategoryListView(generics.ListCreateAPIView):
 
 
 class ProductListView(generics.ListCreateAPIView):
-    queryset           = Product.objects.all()
     serializer_class   = ProductSerializer
     permission_classes = [IsAdminOrReadOnly]
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        
+        # 1. Filtre par Catégorie
+        category = self.request.query_params.get('category')
+        if category:
+            # Assure-toi que "category__name" correspond bien à la structure de tes modèles
+            queryset = queryset.filter(category__name__icontains=category) 
+
+        # 2. Filtre par Prix Minimum
+        min_price = self.request.query_params.get('min_price')
+        if min_price:
+            queryset = queryset.filter(price__gte=min_price)
+
+        # 3. Filtre par Prix Maximum
+        max_price = self.request.query_params.get('max_price')
+        if max_price:
+            queryset = queryset.filter(price__lte=max_price)
+
+        return queryset
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
