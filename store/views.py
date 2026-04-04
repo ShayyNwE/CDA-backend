@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from django.shortcuts import get_object_or_404 
+from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 
 from .models import User, Category, Product, Order, Cart, CartItem, Message
@@ -39,7 +39,7 @@ class RegisterView(generics.CreateAPIView):
 
         refresh = RefreshToken.for_user(user)
         return Response({
-            'access' : str(refresh.access_token),
+            'access': str(refresh.access_token),
             'refresh': str(refresh),
         }, status=status.HTTP_201_CREATED)
 
@@ -95,7 +95,7 @@ class LoginView(APIView):
 
         refresh = RefreshToken.for_user(user)
         return Response({
-            'access' : str(refresh.access_token),
+            'access': str(refresh.access_token),
             'refresh': str(refresh),
         })
 
@@ -132,10 +132,9 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        # On formate la réponse exactement comme le Front l'attend
         return Response({
             "user": serializer.data,
-            "orders": []  # Plus tard, on récupérera les commandes ici
+            "orders": []
         })
 
     def update(self, request, *args, **kwargs):
@@ -173,11 +172,11 @@ class ProductListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Product.objects.all()
-        
+
         # 1. Filtre par Catégorie
         category = self.request.query_params.get('category')
         if category:
-            queryset = queryset.filter(category__name__icontains=category) 
+            queryset = queryset.filter(category__name__icontains=category)
 
         # 2. Filtre par Prix Minimum
         min_price = self.request.query_params.get('min_price')
@@ -218,7 +217,7 @@ class OrderDetailView(generics.RetrieveAPIView):
 
 
 def get_slider_products(request):
-    products = Product.objects.all()[:10] 
+    products = Product.objects.all()[:10]
     data = []
     for p in products:
         data.append({
@@ -261,9 +260,9 @@ def add_to_cart(request):
     product = get_object_or_404(Product, id=product_id)
 
     cart_item = CartItem.objects.filter(
-        cart=cart, 
-        product=product, 
-        custom_name=custom_name, 
+        cart=cart,
+        product=product,
+        custom_name=custom_name,
         custom_scent=custom_scent
     ).first()
 
@@ -272,10 +271,10 @@ def add_to_cart(request):
         cart_item.save()
     else:
         CartItem.objects.create(
-            cart=cart, 
-            product=product, 
-            quantity=quantity, 
-            custom_name=custom_name, 
+            cart=cart,
+            product=product,
+            quantity=quantity,
+            custom_name=custom_name,
             custom_scent=custom_scent
         )
 
