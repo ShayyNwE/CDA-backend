@@ -172,11 +172,10 @@ class ProductListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Product.objects.all()
-        
+
         # 1. Filtre par Catégorie
         category = self.request.query_params.get('category')
         if category:
-            # Assure-toi que "category__name" correspond bien à la structure de tes modèles
             queryset = queryset.filter(category__name__icontains=category) 
 
         # 2. Filtre par Prix Minimum
