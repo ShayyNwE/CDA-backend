@@ -1,21 +1,26 @@
-# Python
+# Python & Environnement
+venv/
+.venv/
+env/
 __pycache__/
 *.pyc
 *.pyo
-.env
-logs/
-venv/
 
-# Django
-*.log
+# Django & Database
 db.sqlite3
+*.log
+logs/
 
-# Variables d'environnement
+# Variables d'environnement (Crucial pour la sécurité)
 .env
 .env.local
+.env.*
 
-# VS Code
+# VS Code & OS
 .vscode/
+.DS_Store
 
-# Node
+# Frontend (au cas où)
 node_modules/
+dist/
+build/

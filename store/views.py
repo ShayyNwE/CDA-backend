@@ -39,15 +39,7 @@ class RegisterView(generics.CreateAPIView):
 
         refresh = RefreshToken.for_user(user)
         return Response({
-<<<<<<< Updated upstream
             'access': str(refresh.access_token),
-=======
-<<<<<<< HEAD
-            'access' : str(refresh.access_token),
-=======
-            'access': str(refresh.access_token),
->>>>>>> ff7dd95900b4b216a910cf41c60b906c878cefda
->>>>>>> Stashed changes
             'refresh': str(refresh),
         }, status=status.HTTP_201_CREATED)
 
@@ -140,22 +132,10 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-<<<<<<< Updated upstream
+        # Structure attendue par le Front
         return Response({
             "user": serializer.data,
             "orders": []
-=======
-<<<<<<< HEAD
-        # On formate la réponse exactement comme le Front l'attend
-        return Response({
-            "user": serializer.data,
-            "orders": []  # Plus tard, on récupérera les commandes ici
-=======
-        return Response({
-            "user": serializer.data,
-            "orders": []
->>>>>>> ff7dd95900b4b216a910cf41c60b906c878cefda
->>>>>>> Stashed changes
         })
 
     def update(self, request, *args, **kwargs):
