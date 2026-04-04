@@ -122,20 +122,13 @@ class LogoutView(APIView):
             )
 
 
+# 🔑 VOICI LA CLASSE CORRIGÉE POUR LE PROFIL
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         return self.request.user
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response({
-            "user": serializer.data,
-            "orders": []
-        })
 
     def update(self, request, *args, **kwargs):
         data = request.data.copy()
