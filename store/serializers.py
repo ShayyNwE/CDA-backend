@@ -6,7 +6,7 @@ from .models import User, Category, Product, Order, OrderDetails, CartItem, Mess
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = User
+        model = User
         fields = ['user_id', 'email', 'firstname', 'lastname', 'roles']
         read_only_fields = ['user_id', 'roles']
 
@@ -15,15 +15,18 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
 
     class Meta:
-        model  = User
+        model = User
         fields = ['email', 'password', 'firstname', 'lastname']
 
     def validate_password(self, value):
-        regex = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{12,}$'
-        
+        regex = (
+            r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)'
+            r'(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{12,}$'
+        )
         if not re.match(regex, value):
             raise serializers.ValidationError(
-                "Le mot de passe doit contenir au moins 12 caractères. Une majuscule, une minuscule, un chiffre et un caractère spécial (@$!%*?&#)."
+                "Le mot de passe doit contenir au moins 12 caractères. "
+                "Une majuscule, une minuscule, un chiffre et un caractère spécial (@$!%*?&#)."
             )
         return value
 
@@ -33,16 +36,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
-        model  = Category
+        model = Category
         fields = '__all__'
 
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
-    price_euros   = serializers.SerializerMethodField()
+    price_euros = serializers.SerializerMethodField()
 
     class Meta:
-        model  = Product
+        model = Product
         fields = '__all__'
 
     def get_price_euros(self, obj):
@@ -51,7 +54,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class OrderDetailsSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = OrderDetails
+        model = OrderDetails
         fields = '__all__'
         read_only_fields = ['detail_id', 'order']
 
@@ -60,7 +63,7 @@ class OrderSerializer(serializers.ModelSerializer):
     details = OrderDetailsSerializer(many=True, read_only=True)
 
     class Meta:
-        model  = Order
+        model = Order
         fields = '__all__'
         read_only_fields = [
             'order_id', 'user', 'is_paid',
@@ -84,6 +87,6 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
-        model  = Message
+        model = Message
         fields = '__all__'
         read_only_fields = ['message_id', 'created_at']
