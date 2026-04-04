@@ -71,7 +71,6 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
 
-        # --- Ici, l'utilisateur est authentifié, on peut fusionner les paniers ---
         session_key = request.session.session_key
         if session_key:
             try:
