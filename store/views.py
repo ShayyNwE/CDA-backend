@@ -2,17 +2,15 @@ import logging
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 
-from .models import User, Category, Product, Order, Cart, CartItem, Message
+from .models import User, Category, Product, Order, Message
 from .serializers import (
     UserSerializer, RegisterSerializer, CategorySerializer,
-    ProductSerializer, OrderSerializer, CartItemSerializer, MessageSerializer
+    ProductSerializer, OrderSerializer, MessageSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -71,28 +69,6 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
 
-        session_key = request.session.session_key
-        if session_key:
-            try:
-                guest_cart = Cart.objects.get(session_key=session_key, user__isnull=True)
-                user_cart, created = Cart.objects.get_or_create(user=user)
-                for item in guest_cart.items.all():
-                    existing_item = CartItem.objects.filter(
-                        cart=user_cart,
-                        product=item.product,
-                        custom_name=item.custom_name,
-                        custom_scent=item.custom_scent
-                    ).first()
-                    if existing_item:
-                        existing_item.quantity += item.quantity
-                        existing_item.save()
-                    else:
-                        item.cart = user_cart
-                        item.save()
-                guest_cart.delete()
-            except Cart.DoesNotExist:
-                pass
-
         refresh = RefreshToken.for_user(user)
         return Response({
             'access': str(refresh.access_token),
@@ -132,7 +108,6 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        # Structure attendue par le Front
         return Response({
             "user": serializer.data,
             "orders": []
@@ -172,19 +147,19 @@ class ProductListView(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.prefetch_related('categories').all()
 
-        # 1. Filtre par Catégorie
+        # Filtre par catégorie
         category = self.request.query_params.get('category')
         if category:
-            queryset = queryset.filter(category__name__icontains=category)
+            queryset = queryset.filter(categories__name__icontains=category)
 
-        # 2. Filtre par Prix Minimum
+        # Filtre par prix minimum
         min_price = self.request.query_params.get('min_price')
         if min_price:
             queryset = queryset.filter(price__gte=min_price)
 
-        # 3. Filtre par Prix Maximum
+        # Filtre par prix maximum
         max_price = self.request.query_params.get('max_price')
         if max_price:
             queryset = queryset.filter(price__lte=max_price)
@@ -193,7 +168,7 @@ class ProductListView(generics.ListCreateAPIView):
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset           = Product.objects.all()
+    queryset           = Product.objects.prefetch_related('categories').all()
     serializer_class   = ProductSerializer
     permission_classes = [IsAdminOrReadOnly]
 
@@ -218,96 +193,16 @@ class OrderDetailView(generics.RetrieveAPIView):
 
 
 def get_slider_products(request):
-    products = Product.objects.all()[:10]
+    products = Product.objects.prefetch_related('categories').all()[:10]
     data = []
     for p in products:
         data.append({
-            "id": p.id,
+            "id": p.product_id,
             "name": p.name,
-            "price": p.price,
+            "price": str(p.price),
             "image": p.image if p.image else "/images/bougiesParf.png"
         })
     return JsonResponse(data, safe=False)
-
-
-def get_or_create_cart(request):
-    if request.user.is_authenticated:
-        cart, created = Cart.objects.get_or_create(user=request.user)
-    else:
-        if not request.session.session_key:
-            request.session.create()
-        cart, created = Cart.objects.get_or_create(session_key=request.session.session_key)
-    return cart
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def get_cart(request):
-    cart = get_or_create_cart(request)
-    items = cart.items.all()
-    serializer = CartItemSerializer(items, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['POST'])
-@permission_classes([permissions.AllowAny])
-def add_to_cart(request):
-    cart = get_or_create_cart(request)
-    product_id = request.data.get('product_id')
-    quantity = int(request.data.get('quantity', 1))
-    custom_name = request.data.get('custom_name')
-    custom_scent = request.data.get('custom_scent')
-
-    product = get_object_or_404(Product, id=product_id)
-
-    cart_item = CartItem.objects.filter(
-        cart=cart,
-        product=product,
-        custom_name=custom_name,
-        custom_scent=custom_scent
-    ).first()
-
-    if cart_item:
-        cart_item.quantity += quantity
-        cart_item.save()
-    else:
-        CartItem.objects.create(
-            cart=cart,
-            product=product,
-            quantity=quantity,
-            custom_name=custom_name,
-            custom_scent=custom_scent
-        )
-
-    items = cart.items.all()
-    serializer = CartItemSerializer(items, many=True)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-@api_view(['PATCH'])
-@permission_classes([permissions.AllowAny])
-def update_cart_item(request, item_id):
-    cart = get_or_create_cart(request)
-    cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
-    delta = int(request.data.get('delta', 0))
-    cart_item.quantity += delta
-    if cart_item.quantity <= 0:
-        cart_item.delete()
-    else:
-        cart_item.save()
-
-    items = cart.items.all()
-    serializer = CartItemSerializer(items, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['DELETE'])
-@permission_classes([permissions.AllowAny])
-def remove_cart_item(request, item_id):
-    cart = get_or_create_cart(request)
-    cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
-    cart_item.delete()
-    return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
 
 
 class MessageView(generics.ListCreateAPIView):
@@ -318,3 +213,8 @@ class MessageView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             return [permissions.AllowAny()]
         return [permissions.IsAdminUser()]
+
+    def perform_create(self, serializer):
+        # Associe automatiquement l'utilisateur connecté s'il y en a un
+        user = self.request.user if self.request.user.is_authenticated else None
+        serializer.save(user=user)
