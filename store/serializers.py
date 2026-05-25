@@ -1,7 +1,7 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Category, Product, ProductCategory, Order, OrderDetails, Message
+from .models import User, Category, Product, Order, OrderDetails, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
