@@ -7,7 +7,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": "bougie_db",
         "USER": "bougie_user",
-        "PASSWORD": "root",
+        "PASSWORD": "Guitom07?",
         "HOST": "localhost",
         "PORT": "5432",
     }
