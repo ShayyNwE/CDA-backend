@@ -1,19 +1,19 @@
 from .settings import *
+import os
 
 DEBUG = False
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "bougie_db",
-        "USER": "bougie_user",
-        "PASSWORD": "Guitom07?",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": os.getenv("DB_NAME", "bougie_db"),
+        "USER": os.getenv("DB_USER", "bougie_user"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "Guitom07?"),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
     }
 }
 
-# ✅ IMPORTANT pour éviter les 301 en tests
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
