@@ -58,6 +58,7 @@ class Product(models.Model):
     customizable  = models.BooleanField(default=False)
     options       = models.JSONField(blank=True, null=True)
     weight        = models.IntegerField()
+    stock         = models.IntegerField(default=0)
     categories    = models.ManyToManyField(
         Category,
         through="ProductCategory",
