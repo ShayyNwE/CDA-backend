@@ -1,7 +1,7 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Category, Product, Order, OrderDetails, CartItem, Message
+from .models import User, Category, Product, Order, OrderDetails, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -41,22 +41,42 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    price_euros = serializers.SerializerMethodField()
+    categories = CategorySerializer(many=True, read_only=True)
+    category_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        write_only=True,
+        queryset=Category.objects.all(),
+        source='categories',
+    )
 
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = [
+            'product_id', 'name', 'description', 'price', 'image',
+            'customizable', 'options', 'weight', 'categories', 'category_ids',
+        ]
 
-    def get_price_euros(self, obj):
-        return obj.price / 100
+    def create(self, validated_data):
+        categories = validated_data.pop('categories', [])
+        product = Product.objects.create(**validated_data)
+        product.categories.set(categories)
+        return product
+
+    def update(self, instance, validated_data):
+        categories = validated_data.pop('categories', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if categories is not None:
+            instance.categories.set(categories)
+        return instance
 
 
 class OrderDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderDetails
         fields = '__all__'
-        read_only_fields = ['detail_id', 'order']
+        read_only_fields = ['order_detail_id', 'order']
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -66,27 +86,13 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = '__all__'
         read_only_fields = [
-            'order_id', 'user', 'is_paid',
-            'stripe_session_id', 'shipping_label_url', 'created_at',
+            'order_id', 'user', 'paid',
+            'stripe_id', 'date',
         ]
-
-
-class CartProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'name', 'price', 'image', 'is_customizable']
-
-
-class CartItemSerializer(serializers.ModelSerializer):
-    product = CartProductSerializer(read_only=True)
-
-    class Meta:
-        model = CartItem
-        fields = ['id', 'product', 'quantity', 'custom_name', 'custom_scent']
 
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = '__all__'
-        read_only_fields = ['message_id', 'created_at']
+        read_only_fields = ['message_id', 'date']

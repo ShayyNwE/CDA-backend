@@ -24,8 +24,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_id   = models.AutoField(primary_key=True)
     email     = models.EmailField(max_length=320, unique=True)
     roles     = models.JSONField(default=list)
-    firstname = models.CharField(max_length=100, blank=True, null=True)
-    lastname  = models.CharField(max_length=100, blank=True, null=True)
+    password  = models.CharField(max_length=255)
+    firstname = models.CharField(max_length=100)
+    lastname  = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     is_staff  = models.BooleanField(default=False)
 
@@ -34,12 +35,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     class Meta:
-        db_table = "users"
+        db_table = "user"
 
 
 class Category(models.Model):
     category_id = models.AutoField(primary_key=True)
-    name        = models.CharField(max_length=100)
+    name        = models.CharField(max_length=100, unique=True)
 
     class Meta:
         db_table = "category"
@@ -49,15 +50,20 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    id                    = models.AutoField(primary_key=True)
-    name                  = models.CharField(max_length=200)
-    description           = models.TextField(blank=True, null=True)
-    price                 = models.IntegerField()
-    image                 = models.CharField(max_length=255, blank=True, null=True)
-    is_customizable       = models.SmallIntegerField(default=0)
-    customization_options = models.JSONField(blank=True, null=True)
-    weight                = models.IntegerField(blank=True, null=True)
-    category              = models.ForeignKey(Category, on_delete=models.RESTRICT, related_name="products")
+    product_id    = models.AutoField(primary_key=True)
+    name          = models.CharField(max_length=255)
+    description   = models.TextField(blank=True, null=True)
+    price         = models.DecimalField(max_digits=10, decimal_places=2)
+    image         = models.CharField(max_length=255, blank=True, null=True)
+    customizable  = models.BooleanField(default=False)
+    options       = models.JSONField(blank=True, null=True)
+    weight        = models.IntegerField()
+    stock         = models.IntegerField(default=0)
+    categories    = models.ManyToManyField(
+        Category,
+        through="ProductCategory",
+        related_name="products",
+    )
 
     class Meta:
         db_table = "product"
@@ -66,69 +72,48 @@ class Product(models.Model):
         return self.name
 
 
-class Order(models.Model):
-    order_id           = models.AutoField(primary_key=True)
-    reference          = models.CharField(max_length=50, unique=True)
-    carrier_name       = models.CharField(max_length=100, blank=True, null=True)
-    carrier_price      = models.IntegerField(blank=True, null=True)
-    delivery_address   = models.TextField(blank=True, null=True)
-    is_paid            = models.SmallIntegerField(default=0)
-    stripe_session_id  = models.CharField(max_length=255, blank=True, null=True)
-    created_at         = models.DateTimeField(auto_now_add=True)
-    shipping_label_url = models.CharField(max_length=500, blank=True, null=True)
-    user               = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="orders")
+class ProductCategory(models.Model):
+    product  = models.ForeignKey(Product, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = "orders"
-        ordering = ["-created_at"]
+        db_table = "product_category"
+        unique_together = ("product", "category")
+
+
+class Order(models.Model):
+    order_id      = models.AutoField(primary_key=True)
+    reference     = models.CharField(max_length=50, unique=True)
+    carrier       = models.CharField(max_length=100, blank=True, null=True)
+    carrier_cost  = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    address       = models.TextField(blank=True, null=True)
+    paid          = models.BooleanField(default=False)
+    stripe_id     = models.CharField(max_length=255, blank=True, null=True)
+    date          = models.DateTimeField(auto_now_add=True)
+    label         = models.CharField(max_length=500, blank=True, null=True)
+    user          = models.ForeignKey(User, on_delete=models.RESTRICT, related_name="orders")
+
+    class Meta:
+        db_table = "order"
+        ordering = ["-date"]
 
     def __str__(self):
         return f"Commande {self.reference}"
 
 
 class OrderDetails(models.Model):
-    detail_id     = models.AutoField(primary_key=True)
-    product_name  = models.CharField(max_length=200)
-    product_price = models.IntegerField()
-    quantity      = models.IntegerField()
-    total         = models.IntegerField()
-    order         = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="details")
-    product       = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    order_detail_id = models.AutoField(primary_key=True)
+    name            = models.CharField(max_length=255)
+    price           = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity        = models.IntegerField()
+    total           = models.DecimalField(max_digits=10, decimal_places=2)
+    order           = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="details")
+    product         = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = "order_details"
 
 
-# --- MODÈLES DU PANIER ---
-class Cart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name="cart")
-    session_key = models.CharField(max_length=40, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "cart"
-
-    def __str__(self):
-        if self.user:
-            return f"Panier de {self.user.email}"
-        return f"Panier visiteur {self.session_key}"
-
-
-class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, related_name="items", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
-    custom_name = models.CharField(max_length=7, null=True, blank=True)
-    custom_scent = models.CharField(max_length=50, null=True, blank=True)
-
-    class Meta:
-        db_table = "cart_item"
-
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
-
-
-# --- MODÈLES MESSAGERIE (CONTACT) ---
 phone_validator = RegexValidator(
     regex=r'^\+?[\d\s\-().]{7,20}$',
     message="Numéro de téléphone invalide."
@@ -139,15 +124,22 @@ class Message(models.Model):
     message_id = models.AutoField(primary_key=True)
     firstname  = models.CharField(max_length=100)
     lastname   = models.CharField(max_length=100)
-    email      = models.EmailField(max_length=320)
-    phone      = models.CharField(max_length=20, validators=[phone_validator])
+    email      = models.EmailField(max_length=320, unique=True)
+    phone      = models.CharField(max_length=15, validators=[phone_validator])
     subject    = models.CharField(max_length=255)
     message    = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    date       = models.DateTimeField(auto_now_add=True)
+    user       = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="messages",
+    )
 
     class Meta:
         db_table  = "messages"
-        ordering  = ["-created_at"]
+        ordering  = ["-date"]
 
     def __str__(self):
         return f"{self.subject} — {self.email}"
