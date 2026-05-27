@@ -1,4 +1,5 @@
 import logging
+import uuid
 from django.db import transaction
 from django.db.models import F
 from rest_framework import generics, permissions, status
@@ -199,7 +200,12 @@ class OrderListView(generics.ListCreateAPIView):
 
         # ── 2. Création commande + décrémentation stock ───────────────────
         with transaction.atomic():
-            serializer = self.get_serializer(data=request.data)
+            reference = f"CMD-{uuid.uuid4().hex[:8].upper()}"
+
+            order_data = request.data.copy()
+            order_data['reference'] = reference
+
+            serializer = self.get_serializer(data=order_data)
             serializer.is_valid(raise_exception=True)
             order = serializer.save(user=request.user)
 
