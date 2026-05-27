@@ -25,8 +25,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     email     = models.EmailField(max_length=320, unique=True)
     roles     = models.JSONField(default=list)
     password  = models.CharField(max_length=255)
-    firstname = models.CharField(max_length=100)
-    lastname  = models.CharField(max_length=100)
+    firstname = models.CharField(max_length=100, default="")
+    lastname  = models.CharField(max_length=100, default="")
     is_active = models.BooleanField(default=True)
     is_staff  = models.BooleanField(default=False)
 
