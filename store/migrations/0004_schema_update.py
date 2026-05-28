@@ -10,9 +10,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # ── 1. Supprimer les tables Cart / CartItem ─────────────────────────
-        migrations.DeleteModel(name='CartItem'),
-        migrations.DeleteModel(name='Cart'),
+        # ── 1. Supprimer les tables Cart / CartItem (si elles existent) ──────
+        migrations.RunSQL(
+            sql="""
+                DROP TABLE IF EXISTS cart_item CASCADE;
+                DROP TABLE IF EXISTS cart CASCADE;
+            """,
+            reverse_sql="",
+        ),
 
         # ── 2. USER : rendre firstname/lastname NOT NULL ─────────────────────
         migrations.AlterField(
@@ -34,19 +39,16 @@ class Migration(migrations.Migration):
         ),
 
         # ── 4. PRODUCT : reconstruire les champs ─────────────────────────────
-        # Renommer la PK (id → product_id)
         migrations.RenameField(
             model_name='product',
             old_name='id',
             new_name='product_id',
         ),
-        # price : IntegerField → DecimalField(10,2)
         migrations.AlterField(
             model_name='product',
             name='price',
             field=models.DecimalField(max_digits=10, decimal_places=2),
         ),
-        # is_customizable → customizable (BooleanField)
         migrations.RenameField(
             model_name='product',
             old_name='is_customizable',
@@ -56,25 +58,22 @@ class Migration(migrations.Migration):
             sql='ALTER TABLE product ALTER COLUMN "customizable" TYPE boolean USING ("customizable"::int::boolean);',
             reverse_sql='ALTER TABLE product ALTER COLUMN "customizable" TYPE smallint USING ("customizable"::int);',
         ),
-        # customization_options → options
         migrations.RenameField(
             model_name='product',
             old_name='customization_options',
             new_name='options',
         ),
-        # weight NOT NULL
         migrations.AlterField(
             model_name='product',
             name='weight',
             field=models.IntegerField(),
         ),
-        # Supprimer l'ancienne FK category (remplacée par ManyToMany)
         migrations.RemoveField(
             model_name='product',
             name='category',
         ),
 
-        # ── 5. PRODUCT_CATEGORY (table de liaison ManyToMany) ────────────────
+        # ── 5. PRODUCT_CATEGORY ───────────────────────────────────────────────
         migrations.CreateModel(
             name='ProductCategory',
             fields=[
@@ -103,7 +102,7 @@ class Migration(migrations.Migration):
             ),
         ),
 
-        # ── 6. ORDER : renommer les champs ───────────────────────────────────
+        # ── 6. ORDER ──────────────────────────────────────────────────────────
         migrations.RenameField(
             model_name='order',
             old_name='carrier_name',
@@ -167,7 +166,7 @@ class Migration(migrations.Migration):
             table='order',
         ),
 
-        # ── 7. ORDER_DETAILS : renommer les champs ───────────────────────────
+        # ── 7. ORDER_DETAILS ──────────────────────────────────────────────────
         migrations.RenameField(
             model_name='orderdetails',
             old_name='detail_id',
@@ -194,7 +193,7 @@ class Migration(migrations.Migration):
             field=models.DecimalField(max_digits=10, decimal_places=2),
         ),
 
-        # ── 8. MESSAGE : renommer created_at → date + ajouter FK user ────────
+        # ── 8. MESSAGE ────────────────────────────────────────────────────────
         migrations.RenameField(
             model_name='message',
             old_name='created_at',
@@ -232,7 +231,7 @@ class Migration(migrations.Migration):
             options={'ordering': ['-date']},
         ),
 
-        # ── 9. USER : renommer la table ──────────────────────────────────────
+        # ── 9. USER ───────────────────────────────────────────────────────────
         migrations.AlterModelTable(
             name='user',
             table='user',
