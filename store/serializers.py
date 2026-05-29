@@ -2,6 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User, Category, Product, Order, OrderDetails, Message
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -96,3 +97,11 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = '__all__'
         read_only_fields = ['message_id', 'date']
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['is_staff'] = user.is_staff
+        token['roles'] = user.roles
+        return token
