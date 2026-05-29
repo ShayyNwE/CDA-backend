@@ -173,35 +173,34 @@ class OrderListView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         items = request.data.get('items', [])
 
-        # ── 1. Vérification du stock ──────────────────────────────────────
-        errors   = []
-        products = {}
-
-        for item in items:
-            product_id = item.get('product_id')
-            quantity   = int(item.get('quantity', 1))
-
-            try:
-                product = Product.objects.select_for_update().get(pk=product_id)
-            except Product.DoesNotExist:
-                errors.append(f"Produit {product_id} introuvable.")
-                continue
-
-            if product.stock < quantity:
-                errors.append(
-                    f"Stock insuffisant pour « {product.name} » "
-                    f"(disponible : {product.stock}, demandé : {quantity})."
-                )
-            else:
-                products[product_id] = (product, quantity)
-
-        if errors:
-            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
-
-        # ── 2. Création commande + décrémentation stock ───────────────────
         with transaction.atomic():
-            reference = f"CMD-{uuid.uuid4().hex[:8].upper()}"
+            # ── 1. Vérification du stock ──────────────────────────────────────
+            errors   = []
+            products = {}
 
+            for item in items:
+                product_id = item.get('product_id')
+                quantity   = int(item.get('quantity', 1))
+
+                try:
+                    product = Product.objects.select_for_update().get(pk=product_id)
+                except Product.DoesNotExist:
+                    errors.append(f"Produit {product_id} introuvable.")
+                    continue
+
+                if product.stock < quantity:
+                    errors.append(
+                        f"Stock insuffisant pour « {product.name} » "
+                        f"(disponible : {product.stock}, demandé : {quantity})."
+                    )
+                else:
+                    products[product_id] = (product, quantity)
+
+            if errors:
+                return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+            # ── 2. Création commande + décrémentation stock ───────────────────
+            reference = f"CMD-{uuid.uuid4().hex[:8].upper()}"
             order_data = request.data.copy()
             order_data['reference'] = reference
 
