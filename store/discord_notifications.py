@@ -31,7 +31,7 @@ def notify_nouvelle_commande(order, details):
     total = sum(d.total for d in details)
     payload = {
         "embeds": [{
-            "title": "🛒 Nouvelle commande !",
+            "title": f"🛒 Nouvelle commande — {total}€ !",
             "color": 0x2ECC71,
             "fields": [
                 {"name": "Référence", "value": order.reference, "inline": True},
@@ -49,7 +49,7 @@ def notify_stock_faible(product):
     if product.stock <= STOCK_SEUIL:
         payload = {
             "embeds": [{
-                "title": "⚠️ Stock faible !",
+                "title": f"⚠️ Stock faible — {product.name} !",
                 "color": 0xE74C3C,
                 "fields": [
                     {"name": "Produit", "value": product.name, "inline": True},
