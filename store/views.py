@@ -42,6 +42,13 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        send_mail(
+            subject="Bienvenue sur Shad's Candle ! 🕯️",
+            message=f"Bonjour {user.firstname},\n\nMerci de vous être inscrit sur Shad's Candle !\n\nNous sommes ravis de vous accueillir.\n\nÀ bientôt,\nL'équipe Shad's Candle",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
         refresh = RefreshToken.for_user(user)
         return Response({
             'access':  str(refresh.access_token),
@@ -235,6 +242,19 @@ class OrderListView(generics.ListCreateAPIView):
             for product_id, (product, quantity) in products.items():
                 product.refresh_from_db()
                 notify_stock_faible(product)
+
+            # Email de confirmation de commande
+            lignes = "\n".join(
+                f"- {d.name} x{d.quantity} : {d.total}€"
+                for d in details_list
+            )
+            send_mail(
+                subject=f"Confirmation de votre commande {order.reference} 🕯️",
+                message=f"Bonjour {order.user.firstname},\n\nVotre commande {order.reference} a bien été reçue !\n\nDétail :\n{lignes}\n\nMerci pour votre confiance,\nL'équipe Shad's Candle",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[order.user.email],
+                fail_silently=True,
+            )
 
         return Response(
             self.get_serializer(order).data,
