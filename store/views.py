@@ -13,7 +13,7 @@ from django.http import JsonResponse
 from .models import User, Category, Product, Order, OrderDetails, Message
 from .serializers import (
     UserSerializer, RegisterSerializer, CategorySerializer,
-    ProductSerializer, OrderSerializer, MessageSerializer
+    ProductSerializer, OrderSerializer, MessageSerializer, CustomTokenObtainPairSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class LoginView(APIView):
         if not user.is_active:
             return Response({'error': 'Compte désactivé'}, status=status.HTTP_403_FORBIDDEN)
 
-        refresh = RefreshToken.for_user(user)
+        refresh = CustomTokenObtainPairSerializer.get_token(user)
         return Response({
             'access':  str(refresh.access_token),
             'refresh': str(refresh),
