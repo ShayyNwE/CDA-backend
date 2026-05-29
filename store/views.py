@@ -9,6 +9,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.http import JsonResponse
+from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
 
 from .models import User, Category, Product, Order, OrderDetails, Message
 from .serializers import (
@@ -222,6 +223,14 @@ class OrderListView(generics.ListCreateAPIView):
                     quantity = quantity,
                     total    = product.price * quantity,
                 )
+            # Notifier Discord
+            details_list = list(OrderDetails.objects.filter(order=order))
+            notify_nouvelle_commande(order, details_list)
+
+            # Vérifier stock faible pour chaque produit
+            for product_id, (product, quantity) in products.items():
+                product.refresh_from_db()
+                notify_stock_faible(product)
 
         return Response(
             self.get_serializer(order).data,
@@ -260,4 +269,5 @@ class MessageView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user if self.request.user.is_authenticated else None
-        serializer.save(user=user)
+        message = serializer.save(user=user)
+        notify_nouveau_message(message)
