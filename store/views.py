@@ -42,18 +42,29 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
+        # Désactiver le compte jusqu'à vérification
+        user.is_active = False
+        user.save()
+
+        # Générer un token de vérification
+        token = uuid.uuid4().hex
+        cache.set(f'email_verify_{token}', user.user_id, timeout=86400)  # 24h
+
+        verify_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/verify-email?token={token}"
+
         send_mail(
-            subject="Bienvenue sur Shad's Candle ! 🕯️",
-            message=f"Bonjour {user.firstname},\n\nMerci de vous être inscrit sur Shad's Candle !\n\nNous sommes ravis de vous accueillir.\n\nÀ bientôt,\nL'équipe Shad's Candle",
+            subject="Vérifiez votre email — Shad's Candle 🕯️",
+            message=f"Bonjour {user.firstname},\n\nMerci de vous être inscrit !\n\nCliquez sur ce lien pour activer votre compte :\n{verify_url}\n\nCe lien expire dans 24h.\n\nL'équipe Shad's Candle",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
-            fail_silently=True,
+            fail_silently=False,
         )
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'access':  str(refresh.access_token),
-            'refresh': str(refresh),
-        }, status=status.HTTP_201_CREATED)
+
+        return Response(
+            {'message': "Compte créé ! Vérifiez votre email pour l'activer."},
+            status=status.HTTP_201_CREATED
+        )
 
 
 class LoginView(APIView):
@@ -352,3 +363,26 @@ class PasswordResetConfirmView(APIView):
         cache.delete(f'password_reset_{token}')
 
         return Response({'message': 'Mot de passe réinitialisé avec succès.'})
+    
+class EmailVerifyView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        token = request.query_params.get('token')
+        if not token:
+            return Response({'error': 'Token manquant'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id = cache.get(f'email_verify_{token}')
+        if not user_id:
+            return Response({'error': 'Token invalide ou expiré'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Utilisateur introuvable'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = True
+        user.save()
+        cache.delete(f'email_verify_{token}')
+
+        return Response({'message': 'Email vérifié ! Vous pouvez maintenant vous connecter.'})
