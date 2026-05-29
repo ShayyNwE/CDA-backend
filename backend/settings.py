@@ -134,6 +134,7 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
     'ALGORITHM': 'HS256',
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'TOKEN_OBTAIN_SERIALIZER': 'store.serializers.CustomTokenObtainPairSerializer',
 }
 
 # --- CORS ---
