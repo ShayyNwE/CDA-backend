@@ -10,6 +10,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.http import JsonResponse
 from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import make_password
+from django.core.cache import cache
 
 from .models import User, Category, Product, Order, OrderDetails, Message
 from .serializers import (
@@ -271,3 +274,60 @@ class MessageView(generics.ListCreateAPIView):
         user = self.request.user if self.request.user.is_authenticated else None
         message = serializer.save(user=user)
         notify_nouveau_message(message)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # On retourne 200 même si l'email n'existe pas (sécurité)
+            return Response({'message': 'Si cet email existe, un lien a été envoyé.'})
+
+        # Générer un token unique
+        token = uuid.uuid4().hex
+        # Stocker en cache 30 minutes
+        cache.set(f'password_reset_{token}', user.user_id, timeout=1800)
+
+        reset_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={token}"
+
+        send_mail(
+            subject='Réinitialisation de votre mot de passe — Shads Candle',
+            message=f'Cliquez sur ce lien pour réinitialiser votre mot de passe : {reset_url}\n\nCe lien expire dans 30 minutes.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        return Response({'message': 'Si cet email existe, un lien a été envoyé.'})
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        token    = request.data.get('token')
+        password = request.data.get('password')
+
+        if not token or not password:
+            return Response({'error': 'Token et mot de passe requis'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id = cache.get(f'password_reset_{token}')
+        if not user_id:
+            return Response({'error': 'Token invalide ou expiré'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Utilisateur introuvable'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(password)
+        user.save()
+        cache.delete(f'password_reset_{token}')
+
+        return Response({'message': 'Mot de passe réinitialisé avec succès.'})

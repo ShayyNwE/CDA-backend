@@ -28,6 +28,10 @@ urlpatterns = [
 
     # Messages
     path('messages/',          MessageView.as_view(),        name='messages'),
+    
+    #Email
+    path('auth/password-reset/',         PasswordResetRequestView.as_view(), name='password_reset'),
+    path('auth/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 
     # Health Check
     path('health/',            api_health_check,             name='api_health_check'),
