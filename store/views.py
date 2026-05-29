@@ -1,5 +1,7 @@
 import logging
 import uuid
+import os
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F
 from rest_framework import generics, permissions, status
@@ -11,7 +13,6 @@ from rest_framework_simplejwt.exceptions import TokenError
 from django.http import JsonResponse
 from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
 from django.core.mail import send_mail
-from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 
 from .models import User, Category, Product, Order, OrderDetails, Message
