@@ -110,7 +110,9 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def retrieve(self, request, *args, **kwargs):
         instance   = self.get_object()
         serializer = self.get_serializer(instance)
-        return Response({"user": serializer.data, "orders": []})
+        orders     = Order.objects.filter(user=instance).order_by('-date')
+        orders_data = OrderSerializer(orders, many=True).data
+        return Response({"user": serializer.data, "orders": orders_data})
 
     def update(self, request, *args, **kwargs):
         data = request.data.copy()
