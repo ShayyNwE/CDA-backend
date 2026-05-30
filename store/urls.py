@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import api_health_check
+from django.views.decorators.csrf import csrf_exempt
+from .views import api_health_check,stripe_webhook
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     RegisterView, LoginView, LogoutView, ProfileView,
@@ -38,6 +39,9 @@ urlpatterns = [
     #Admin
     path('admin/orders/', AdminOrderListView.as_view(), name='admin-orders'),
     path('admin/users/',  AdminUserListView.as_view(),  name='admin-users'),
+
+    #Stripe
+    path('stripe/webhook/', csrf_exempt(stripe_webhook), name='stripe_webhook'),
 
     # Health Check
     path('health/',            api_health_check,             name='api_health_check'),
