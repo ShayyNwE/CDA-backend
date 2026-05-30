@@ -1,6 +1,8 @@
 import logging
 import uuid
 import os
+import stripe
+import json
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
@@ -10,6 +12,8 @@ from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
 from django.core.mail import send_mail
@@ -22,6 +26,7 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def api_health_check(request):
@@ -411,3 +416,74 @@ class AdminUserListView(generics.ListAPIView):
     serializer_class   = UserSerializer
     permission_classes = [permissions.IsAdminUser]
     queryset           = User.objects.all()
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload    = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        return JsonResponse({'error': 'Payload invalide'}, status=400)
+    except stripe.error.SignatureVerificationError:
+        return JsonResponse({'error': 'Signature invalide'}, status=400)
+
+    if event['type'] == 'checkout.session.completed':
+        session  = event['data']['object']
+        metadata = session.get('metadata', {})
+        user_id  = metadata.get('user_id')
+        items    = json.loads(metadata.get('items', '[]'))
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'Utilisateur introuvable'}, status=400)
+
+        with transaction.atomic():
+            reference = f"CMD-{uuid.uuid4().hex[:8].upper()}"
+            order = Order.objects.create(
+                reference = reference,
+                user      = user,
+                paid      = True,
+                stripe_id = session.get('id'),
+                address   = metadata.get('address', ''),
+            )
+
+            details_list = []
+            for item in items:
+                try:
+                    product = Product.objects.select_for_update().get(pk=item['product_id'])
+                except Product.DoesNotExist:
+                    continue
+
+                quantity = int(item.get('quantity', 1))
+                if product.stock >= quantity:
+                    Product.objects.filter(pk=product.product_id).update(
+                        stock=F('stock') - quantity
+                    )
+                    detail = OrderDetails.objects.create(
+                        order    = order,
+                        product  = product,
+                        name     = product.name,
+                        price    = product.price,
+                        quantity = quantity,
+                        total    = product.price * quantity,
+                    )
+                    details_list.append(detail)
+                    notify_stock_faible(product)
+
+            notify_nouvelle_commande(order, details_list)
+
+            lignes = "\n".join(f"- {d.name} x{d.quantity} : {d.total}€" for d in details_list)
+            send_mail(
+                subject=f"Confirmation de votre commande {order.reference} 🕯️",
+                message=f"Bonjour {user.firstname},\n\nVotre commande {order.reference} a bien été reçue et payée !\n\nDétail :\n{lignes}\n\nMerci pour votre confiance,\nL'équipe Shad's Candle",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+
+    return JsonResponse({'status': 'ok'})
