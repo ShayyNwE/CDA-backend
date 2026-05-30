@@ -13,7 +13,6 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from django.http import JsonResponse
 from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
 from django.core.mail import send_mail
