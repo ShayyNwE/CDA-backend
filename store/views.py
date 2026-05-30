@@ -432,7 +432,7 @@ def stripe_webhook(request):
 
     if event['type'] == 'checkout.session.completed':
         session  = event['data']['object']
-        metadata = session.get('metadata', {})
+        metadata = session.metadata or {}
         user_id  = metadata.get('user_id')
         items    = json.loads(metadata.get('items', '[]'))
 
@@ -447,7 +447,7 @@ def stripe_webhook(request):
                 reference = reference,
                 user      = user,
                 paid      = True,
-                stripe_id = session.get('id'),
+                stripe_id = session.id,
                 address   = metadata.get('address', ''),
             )
 
