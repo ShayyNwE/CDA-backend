@@ -386,3 +386,28 @@ class EmailVerifyView(APIView):
         cache.delete(f'email_verify_{token}')
 
         return Response({'message': 'Email vérifié ! Vous pouvez maintenant vous connecter.'})
+    
+class AdminOrderListView(generics.ListAPIView):
+    serializer_class   = OrderSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        return Order.objects.select_related('user').all()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        data = []
+        for order in queryset:
+            order_data = self.get_serializer(order).data
+            order_data['user_detail'] = {
+                'email':     order.user.email,
+                'firstname': order.user.firstname,
+                'lastname':  order.user.lastname,
+            }
+            data.append(order_data)
+        return Response(data)
+    
+class AdminUserListView(generics.ListAPIView):
+    serializer_class   = UserSerializer
+    permission_classes = [permissions.IsAdminUser]
+    queryset           = User.objects.all()
