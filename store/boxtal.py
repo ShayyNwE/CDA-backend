@@ -43,6 +43,6 @@ def create_shipping_order(order, sender, recipient, shipping_offer_code):
         return response.json()
     except requests.exceptions.RequestException as e:
         logger.error(f"Erreur Boxtal : {e}")
-    if hasattr(e, 'response') and e.response is not None:
-        logger.error(f"Détail Boxtal : {e.response.text}")
-    return None
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Détail Boxtal : {e.response.text}")
+        return None
