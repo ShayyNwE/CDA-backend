@@ -28,9 +28,10 @@ def create_shipping_order(order, sender, recipient, shipping_offer_code):
     payload = {
         "shippingOfferCode": shipping_offer_code,
         "shipment": {
-            "sender": sender,
-            "recipient": recipient,
-            "parcels": [{"weight": {"value": 1, "unit": "kg"}}],
+            "fromAddress": sender,
+            "toAddress": recipient,
+            "returnAddress": sender,
+            "packages": [{"weight": {"value": 1, "unit": "kg"}}],
         }
     }
 
