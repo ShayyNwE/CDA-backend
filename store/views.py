@@ -433,6 +433,7 @@ class AdminOrderListView(generics.ListAPIView):
                 'email':     order.user.email,
                 'firstname': order.user.firstname,
                 'lastname':  order.user.lastname,
+                'phone':     order.user.phone,
             }
             data.append(order_data)
         return Response(data)
