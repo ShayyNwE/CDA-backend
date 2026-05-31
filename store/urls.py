@@ -6,7 +6,7 @@ from .views import (
     RegisterView, LoginView, LogoutView, ProfileView,
     CategoryListView, ProductListView, ProductDetailView,
     OrderListView, OrderDetailView, MessageView,PasswordResetRequestView, PasswordResetConfirmView,EmailVerifyView,
-    AdminOrderListView,AdminUserListView
+    AdminOrderListView,AdminUserListView,CarrierListView,CarrierDetailView,BoxtalShippingOrderView
 )
 
 urlpatterns = [
@@ -42,6 +42,12 @@ urlpatterns = [
 
     #Stripe
     path('stripe/webhook/', csrf_exempt(stripe_webhook), name='stripe_webhook'),
+
+
+    #Livreur
+    path('carriers/',          CarrierListView.as_view(),   name='carriers'),
+    path('carriers/<int:pk>/', CarrierDetailView.as_view(), name='carrier-detail'),
+    path('orders/<int:order_id>/shipping/', BoxtalShippingOrderView.as_view(), name='boxtal-shipping'),
 
     # Health Check
     path('health/',            api_health_check,             name='api_health_check'),
