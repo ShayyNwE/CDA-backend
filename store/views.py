@@ -260,7 +260,7 @@ class OrderListView(generics.ListCreateAPIView):
 
             # Email de confirmation de commande
             lignes = "\n".join(
-                f"- {d.name} x{d.quantity} : {d.total}€"
+                f"- {d.name} x{d.quantity} : {d.total / 100}€"
                 for d in details_list
             )
             send_mail(
@@ -476,7 +476,7 @@ def stripe_webhook(request):
 
             notify_nouvelle_commande(order, details_list)
 
-            lignes = "\n".join(f"- {d.name} x{d.quantity} : {d.total}€" for d in details_list)
+            lignes = "\n".join(f"- {d.name} x{d.quantity} : {d.total / 100}€" for d in details_list)
             send_mail(
                 subject=f"Confirmation de votre commande {order.reference} 🕯️",
                 message=f"Bonjour {user.firstname},\n\nVotre commande {order.reference} a bien été reçue et payée !\n\nDétail :\n{lignes}\n\nMerci pour votre confiance,\nL'équipe Shad's Candle",

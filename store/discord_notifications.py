@@ -25,10 +25,10 @@ def send_discord(webhook_url, payload):
 def notify_nouvelle_commande(order, details):
     """Notifie Discord d'une nouvelle commande."""
     lignes = "\n".join(
-        f"• {d.name} x{d.quantity} — {d.total}€"
+        f"• {d.name} x{d.quantity} — {d.total / 100}€"
         for d in details
     )
-    total = sum(d.total for d in details)
+    total = sum(d.total for d in details) / 100
     payload = {
         "embeds": [{
             "title": f"🛒 Nouvelle commande — {total}€ !",
