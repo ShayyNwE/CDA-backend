@@ -47,6 +47,19 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Carrier(models.Model):
+    carrier_id = models.AutoField(primary_key=True)
+    name       = models.CharField(max_length=100)
+    price      = models.DecimalField(max_digits=10, decimal_places=2)
+    free_above = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    is_active  = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "carrier"
+
+    def __str__(self):
+        return self.name
 
 
 class Product(models.Model):
@@ -124,7 +137,7 @@ class Message(models.Model):
     message_id = models.AutoField(primary_key=True)
     firstname  = models.CharField(max_length=100)
     lastname   = models.CharField(max_length=100)
-    email      = models.EmailField(max_length=320, unique=True)
+    email      = models.EmailField(max_length=320)
     phone      = models.CharField(max_length=15, validators=[phone_validator])
     subject    = models.CharField(max_length=255)
     message    = models.TextField()
