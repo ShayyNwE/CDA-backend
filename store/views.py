@@ -476,6 +476,9 @@ def stripe_webhook(request):
                 paid      = True,
                 stripe_id = session.id,
                 address   = metadata.get('address', ''),
+                city      = metadata.get('city', ''),
+                zip_code  = metadata.get('zip_code', ''),
+                country   = metadata.get('country', 'FR'),
             )
 
             details_list = []
