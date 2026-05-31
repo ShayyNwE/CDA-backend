@@ -17,11 +17,13 @@ from django.http import JsonResponse
 from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
 from django.core.mail import send_mail
 from django.core.cache import cache
+from .boxtal import create_shipping_order
 
-from .models import User, Category, Product, Order, OrderDetails, Message
+from .models import User, Category, Product, Order, OrderDetails, Message, Carrier
 from .serializers import (
     UserSerializer, RegisterSerializer, CategorySerializer,
-    ProductSerializer, OrderSerializer, MessageSerializer, CustomTokenObtainPairSerializer
+    ProductSerializer, OrderSerializer, MessageSerializer, CustomTokenObtainPairSerializer,
+    CarrierSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -227,6 +229,26 @@ class OrderListView(generics.ListCreateAPIView):
 
             if errors:
                 return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+
+            # ── Calcul du transporteur ────────────────────────────────────
+            carrier_id   = request.data.get('carrier_id')
+            carrier_cost = None
+            carrier_name = None
+
+            if carrier_id:
+                try:
+                    carrier = Carrier.objects.get(pk=carrier_id, is_active=True)
+                    total_commande = sum(
+                        p.price * q for _, (p, q) in products.items()
+                    )
+                    if carrier.free_above and total_commande >= carrier.free_above:
+                        carrier_cost = 0
+                    else:
+                        carrier_cost = carrier.price
+                    carrier_name = carrier.name
+                except Carrier.DoesNotExist:
+                    return Response({'error': 'Transporteur invalide'}, status=status.HTTP_400_BAD_REQUEST)
 
             # ── 2. Création commande + décrémentation stock ───────────────────
             reference = f"CMD-{uuid.uuid4().hex[:8].upper()}"
@@ -235,7 +257,11 @@ class OrderListView(generics.ListCreateAPIView):
 
             serializer = self.get_serializer(data=order_data)
             serializer.is_valid(raise_exception=True)
-            order = serializer.save(user=request.user)
+            order = serializer.save(
+                user=request.user,
+                carrier=carrier_name,
+                carrier_cost=carrier_cost,
+            )
 
             for product_id, (product, quantity) in products.items():
                 Product.objects.filter(pk=product_id).update(
@@ -486,3 +512,39 @@ def stripe_webhook(request):
             )
 
     return JsonResponse({'status': 'ok'})
+
+class CarrierListView(generics.ListCreateAPIView):
+    serializer_class   = CarrierSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        return Carrier.objects.filter(is_active=True).order_by('price')
+
+
+class CarrierDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class   = CarrierSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    queryset           = Carrier.objects.all()
+
+class BoxtalShippingOrderView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, order_id):
+        try:
+            order = Order.objects.get(pk=order_id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Commande introuvable'}, status=status.HTTP_404_NOT_FOUND)
+
+        sender = request.data.get('sender')
+        recipient = request.data.get('recipient')
+        shipping_offer_code = request.data.get('shipping_offer_code')
+
+        result = create_shipping_order(order, sender, recipient, shipping_offer_code)
+        if not result:
+            return Response({'error': 'Erreur Boxtal'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        # Stocker la référence Boxtal dans la commande
+        order.label = result.get('shippingOrder', {}).get('id', '')
+        order.save()
+
+        return Response(result)
