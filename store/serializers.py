@@ -1,7 +1,7 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .models import User, Category, Product, Order, OrderDetails, Message
+from .models import User, Category, Product, Order, OrderDetails, Message, Carrier
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
@@ -105,3 +105,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_staff'] = user.is_staff
         token['roles'] = user.roles
         return token
+    
+class CarrierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Carrier
+        fields = '__all__'
