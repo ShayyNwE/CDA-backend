@@ -27,6 +27,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     password  = models.CharField(max_length=255)
     firstname = models.CharField(max_length=100, default="")
     lastname  = models.CharField(max_length=100, default="")
+    phone = models.CharField(max_length=15, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff  = models.BooleanField(default=False)
 
@@ -100,6 +101,9 @@ class Order(models.Model):
     carrier       = models.CharField(max_length=100, blank=True, null=True)
     carrier_cost  = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     address       = models.TextField(blank=True, null=True)
+    city          = models.CharField(max_length=100, blank=True, null=True)
+    zip_code      = models.CharField(max_length=10, blank=True, null=True)
+    country       = models.CharField(max_length=2, blank=True, null=True, default='FR')
     paid          = models.BooleanField(default=False)
     stripe_id     = models.CharField(max_length=255, blank=True, null=True)
     date          = models.DateTimeField(auto_now_add=True)
