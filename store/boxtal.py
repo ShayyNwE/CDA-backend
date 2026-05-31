@@ -12,7 +12,7 @@ BOXTAL_ENV         = os.getenv('BOXTAL_ENV', 'sandbox')
 BASE_URL = (
     'https://api.boxtal.com'
     if BOXTAL_ENV == 'production'
-    else 'https://api-sandbox.boxtal.com'
+    else 'https://api.boxtal.build/shipping'
 )
 
 
