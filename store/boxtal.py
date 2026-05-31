@@ -27,9 +27,11 @@ def create_shipping_order(order, sender, recipient, shipping_offer_code):
     """Crée une étiquette d'expédition via Boxtal API V3."""
     payload = {
         "shippingOfferCode": shipping_offer_code,
-        "sender": sender,
-        "recipient": recipient,
-        "parcels": [{"weight": {"value": 1, "unit": "kg"}}],
+        "shipment": {
+            "sender": sender,
+            "recipient": recipient,
+            "parcels": [{"weight": {"value": 1, "unit": "kg"}}],
+        }
     }
 
     try:
