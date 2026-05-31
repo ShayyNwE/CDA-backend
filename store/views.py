@@ -537,18 +537,49 @@ class BoxtalShippingOrderView(APIView):
         try:
             order = Order.objects.get(pk=order_id)
         except Order.DoesNotExist:
-            return Response({'error': 'Commande introuvable'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Commande introuvable"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        sender = request.data.get('sender')
-        recipient = request.data.get('recipient')
-        shipping_offer_code = request.data.get('shipping_offer_code')
+        # 🔥 FIX: support des 2 formats (Postman + frontend)
+        shipping_offer_code = (
+            request.data.get("shipping_offer_code")
+            or request.data.get("shippingOfferCode")
+        )
 
-        result = create_shipping_order(order, sender, recipient, shipping_offer_code)
+        sender = request.data.get("sender")
+        recipient = request.data.get("recipient")
+
+        if not shipping_offer_code:
+            return Response(
+                {"error": "shipping_offer_code manquant"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not sender or not recipient:
+            return Response(
+                {"error": "sender et recipient requis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = create_shipping_order(
+            order,
+            sender,
+            recipient,
+            shipping_offer_code,
+        )
+
         if not result:
-            return Response({'error': 'Erreur Boxtal'}, status=status.HTTP_502_BAD_GATEWAY)
+            return Response(
+                {"error": "Erreur Boxtal"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
-        # Stocker la référence Boxtal dans la commande
-        order.label = result.get('shippingOrder', {}).get('id', '')
+        # stocker id Boxtal si présent
+        order.label = (
+            result.get("shippingOrder", {}).get("id", "")
+        )
         order.save()
 
-        return Response(result)
+        return Response(result, status=status.HTTP_201_CREATED)
