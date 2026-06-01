@@ -575,7 +575,7 @@ class CreateShippingLabelView(APIView):
 
         try:
             res = requests.post(
-                "https://panel.sendcloud.sc/api/v3/shipments/create-announce",
+                "https://panel.sendcloud.sc/api/v3/shipments/announce-with-shipping-rules",
                 json=payload,
                 headers={
                     "Authorization": f"Basic {credentials}",
@@ -585,8 +585,9 @@ class CreateShippingLabelView(APIView):
             )
             res.raise_for_status()
             data   = res.json()
-            parcel = data.get('data', {}).get('parcels', [{}])[0]
-            label  = parcel.get('label_file', '')
+            parcel = res.json().get('data', {}).get('parcels', [{}])[0]
+            documents = parcel.get('documents', [])
+            label = next((d['link'] for d in documents if d.get('type') == 'label'), '')
 
             order.label = label
             order.save()
