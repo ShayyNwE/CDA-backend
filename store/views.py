@@ -548,22 +548,33 @@ class CreateShippingLabelView(APIView):
         house_number  = address_parts[0] if address_parts else ''
         street        = address_parts[1] if len(address_parts) > 1 else recipient.get('address', '')
 
+        # Calcul du poids total depuis les produits de la commande
+        total_weight_grams = sum(
+            (detail.product.weight or 0) * detail.quantity
+            for detail in OrderDetails.objects.filter(order=order).select_related('product')
+        )
+        total_weight_kg = round(total_weight_grams / 1000, 3)
+        total_weight_kg = max(total_weight_kg, 0.1)
+
         payload = {
             "apply_shipping_defaults": True,
             "apply_shipping_rules": True,
             "to_address": {
-                "name":         f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
+                "name":          f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
                 "address_line_1": street,
-                "house_number": house_number,
-                "postal_code":  recipient.get('zipCode', ''),
-                "city":         recipient.get('city', ''),
-                "country_code": recipient.get('country', 'FR'),
-                "phone_number": recipient.get('phone', ''),
-                "email":        recipient.get('email', ''),
+                "house_number":  house_number,
+                "postal_code":   recipient.get('zipCode', ''),
+                "city":          recipient.get('city', ''),
+                "country_code":  recipient.get('country', 'FR'),
+                "phone_number":  recipient.get('phone', ''),
+                "email":         recipient.get('email', ''),
             },
             "parcels": [
                 {
-                    "weight":       "1.000",
+                    "weight": {
+                        "value": str(total_weight_kg),
+                        "unit":  "kg"
+                    },
                     "order_number": order.reference,
                 }
             ],
@@ -584,15 +595,16 @@ class CreateShippingLabelView(APIView):
                 timeout=10,
             )
             res.raise_for_status()
-            data   = res.json()
-            parcel = res.json().get('data', {}).get('parcels', [{}])[0]
+
+            parcel    = res.json().get('data', {}).get('parcels', [{}])[0]
             documents = parcel.get('documents', [])
-            label = next((d['link'] for d in documents if d.get('type') == 'label'), '')
+            label     = next((d['link'] for d in documents if d.get('type') == 'label'), '')
 
             order.label = label
             order.save()
 
             return Response({'pdf_url': label, 'parcel_id': parcel.get('id')})
+
         except requests.RequestException as e:
             error_detail = ''
             if hasattr(e, 'response') and e.response is not None:
