@@ -572,7 +572,7 @@ class CreateShippingLabelView(APIView):
 
         try:
             res = requests.post(
-                "https://panel.sendcloud.sc/api/v2/parcels",
+                "https://panel.sendcloud.sc/api/v3/parcels",
                 json=payload,
                 headers={
                     "Authorization": f"Basic {credentials}",
