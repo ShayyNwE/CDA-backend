@@ -3,6 +3,8 @@ import uuid
 import os
 import stripe
 import json
+import requests
+import base64
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
@@ -17,7 +19,6 @@ from django.http import JsonResponse
 from .discord_notifications import notify_nouvelle_commande, notify_stock_faible, notify_nouveau_message
 from django.core.mail import send_mail
 from django.core.cache import cache
-from .boxtal import create_shipping_order
 
 from .models import User, Category, Product, Order, OrderDetails, Message, Carrier
 from .serializers import (
@@ -530,56 +531,62 @@ class CarrierDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminOrReadOnly]
     queryset           = Carrier.objects.all()
 
-class BoxtalShippingOrderView(APIView):
+
+class CreateShippingLabelView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
-    def post(self, request, order_id):
+    def post(self, request, pk):
         try:
-            order = Order.objects.get(pk=order_id)
+            order = Order.objects.get(pk=pk)
         except Order.DoesNotExist:
-            return Response(
-                {"error": "Commande introuvable"},
-                status=status.HTTP_404_NOT_FOUND,
+            return Response({'error': 'Commande introuvable'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        recipient = data.get('recipient', {})
+        shipment_id = data.get('shipment_id', 8)
+
+        address_parts = recipient.get('address', '').split(' ', 1)
+        house_number = address_parts[0] if address_parts else ''
+        street = address_parts[1] if len(address_parts) > 1 else recipient.get('address', '')
+
+        payload = {
+            "parcel": {
+                "name": f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
+                "email": recipient.get('email', ''),
+                "telephone": recipient.get('phone', ''),
+                "address": street,
+                "house_number": house_number,
+                "city": recipient.get('city', ''),
+                "postal_code": recipient.get('zipCode', ''),
+                "country": recipient.get('country', 'FR'),
+                "weight": "1.000",
+                "shipment": {"id": shipment_id},
+                "request_label": True,
+                "order_number": order.reference,
+            }
+        }
+
+        public_key = settings.SENDCLOUD_PUBLIC_KEY
+        secret_key = settings.SENDCLOUD_SECRET_KEY
+        credentials = base64.b64encode(f"{public_key}:{secret_key}".encode()).decode()
+
+        try:
+            res = requests.post(
+                "https://panel.sendcloud.sc/api/v2/parcels",
+                json=payload,
+                headers={
+                    "Authorization": f"Basic {credentials}",
+                    "Content-Type": "application/json",
+                }
             )
+            res.raise_for_status()
+            parcel  = res.json().get('parcel', {})
+            label   = parcel.get('label', {})
+            pdf_url = (label.get('normal_printer') or [''])[0]
 
-        # 🔥 FIX: support des 2 formats (Postman + frontend)
-        shipping_offer_code = (
-            request.data.get("shipping_offer_code")
-            or request.data.get("shippingOfferCode")
-        )
+            order.label = pdf_url
+            order.save()
 
-        sender = request.data.get("sender")
-        recipient = request.data.get("recipient")
-
-        if not shipping_offer_code:
-            return Response(
-                {"error": "shipping_offer_code manquant"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not sender or not recipient:
-            return Response(
-                {"error": "sender et recipient requis"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        result = create_shipping_order(
-            order,
-            sender,
-            recipient,
-            shipping_offer_code,
-        )
-
-        if not result:
-            return Response(
-                {"error": "Erreur Boxtal"},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        # stocker id Boxtal si présent
-        order.label = (
-            result.get("shippingOrder", {}).get("id", "")
-        )
-        order.save()
-
-        return Response(result, status=status.HTTP_201_CREATED)
+            return Response({'pdf_url': pdf_url, 'parcel_id': parcel.get('id')})
+        except requests.RequestException as e:
+            return Response({'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
