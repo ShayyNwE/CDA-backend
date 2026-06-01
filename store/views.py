@@ -590,4 +590,9 @@ class CreateShippingLabelView(APIView):
 
             return Response({'pdf_url': pdf_url, 'parcel_id': parcel.get('id')})
         except requests.RequestException as e:
-            return Response({'error': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            error_detail = ''
+            if hasattr(e, 'response') and e.response is not None:
+                error_detail = e.response.text
+                logger.error(f"Détail Sendcloud : {error_detail}")
+            logger.error(f"Erreur Sendcloud : {e}")
+            return Response({'error': str(e), 'detail': error_detail}, status=status.HTTP_502_BAD_GATEWAY)
