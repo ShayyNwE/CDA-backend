@@ -577,7 +577,8 @@ class CreateShippingLabelView(APIView):
                 headers={
                     "Authorization": f"Basic {credentials}",
                     "Content-Type": "application/json",
-                }
+                },
+                timeout=10
             )
             res.raise_for_status()
             parcel  = res.json().get('parcel', {})
