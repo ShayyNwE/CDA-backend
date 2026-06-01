@@ -560,12 +560,18 @@ class CreateShippingLabelView(APIView):
             "apply_shipping_defaults": True,
             "apply_shipping_rules":    True,
             "from_address": {
-                "name":          "Shad's Candle",
+                "name":           "Shad's Candle",
                 "address_line_1": "Rue Paul Montrochet",
-                "house_number":  "29",
-                "postal_code":   "69002",
-                "city":          "Lyon",
-                "country_code":  "FR",
+                "house_number":   "29",
+                "postal_code":    "69002",
+                "city":           "Lyon",
+                "country_code":   "FR",
+            },
+            "ship_with": {
+                "type": "shipping_option_code",
+                "properties": {
+                    "shipping_option_code": "sendcloud:letter"
+                }
             },
             "to_address": {
                 "name":           f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
