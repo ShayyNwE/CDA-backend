@@ -6,7 +6,7 @@ from .views import (
     RegisterView, LoginView, LogoutView, ProfileView,
     CategoryListView, ProductListView, ProductDetailView,
     OrderListView, OrderDetailView, MessageView,PasswordResetRequestView, PasswordResetConfirmView,EmailVerifyView,
-    AdminOrderListView,AdminUserListView,CarrierListView,CarrierDetailView,BoxtalShippingOrderView
+    AdminOrderListView,AdminUserListView,CarrierListView,CarrierDetailView,CreateShippingLabelView
 )
 
 urlpatterns = [
@@ -47,7 +47,7 @@ urlpatterns = [
     #Livreur
     path('carriers/',          CarrierListView.as_view(),   name='carriers'),
     path('carriers/<int:pk>/', CarrierDetailView.as_view(), name='carrier-detail'),
-    path('orders/<int:order_id>/shipping/', BoxtalShippingOrderView.as_view(), name='boxtal-shipping'),
+    path('orders/<int:pk>/shipping/', CreateShippingLabelView.as_view(), name='create-shipping-label'),
 
     # Health Check
     path('health/',            api_health_check,             name='api_health_check'),
