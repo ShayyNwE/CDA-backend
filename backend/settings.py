@@ -218,3 +218,8 @@ DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER')
 # ── STRIPE ──────────────────────────────────────────────────────────────────
 STRIPE_SECRET_KEY      = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET  = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+
+# ── SENDCLOUD ──────────────────────────────────────────────────────────────────
+SENDCLOUD_PUBLIC_KEY = os.environ.get('SENDCLOUD_PUBLIC_KEY', '')
+SENDCLOUD_SECRET_KEY = os.environ.get('SENDCLOUD_SECRET_KEY', '')
