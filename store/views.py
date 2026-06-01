@@ -558,16 +558,24 @@ class CreateShippingLabelView(APIView):
 
         payload = {
             "apply_shipping_defaults": True,
-            "apply_shipping_rules": True,
+            "apply_shipping_rules":    True,
+            "from_address": {
+                "name":          "Shad's Candle",
+                "address_line_1": "Rue Paul Montrochet",
+                "house_number":  "29",
+                "postal_code":   "69002",
+                "city":          "Lyon",
+                "country_code":  "FR",
+            },
             "to_address": {
-                "name":          f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
-                "address_line_1": street,
-                "house_number":  house_number,
-                "postal_code":   recipient.get('zipCode', ''),
-                "city":          recipient.get('city', ''),
-                "country_code":  recipient.get('country', 'FR'),
-                "phone_number":  recipient.get('phone', ''),
-                "email":         recipient.get('email', ''),
+                "name":           f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
+                "address_line_1":  street,
+                "house_number":    house_number,
+                "postal_code":     recipient.get('zipCode', ''),
+                "city":            recipient.get('city', ''),
+                "country_code":    recipient.get('country', 'FR'),
+                "phone_number":    recipient.get('phone', ''),
+                "email":           recipient.get('email', ''),
             },
             "parcels": [
                 {
@@ -590,7 +598,7 @@ class CreateShippingLabelView(APIView):
                 json=payload,
                 headers={
                     "Authorization": f"Basic {credentials}",
-                    "Content-Type": "application/json",
+                    "Content-Type":  "application/json",
                 },
                 timeout=10,
             )
