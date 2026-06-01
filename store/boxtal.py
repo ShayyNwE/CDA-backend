@@ -42,7 +42,6 @@ def create_shipping_order(order, sender, recipient, shipping_offer_code):
             "lastName": addr.get("lastName"),
             "email": addr.get("email"),
             "phone": addr.get("phone"),
-            # IMPORTANT: Boxtal est parfois strict sur 'street'
             "street": addr.get("address") or addr.get("street"),
             "city": addr.get("city"),
             "zipCode": addr.get("zipCode"),
