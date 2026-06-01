@@ -541,54 +541,57 @@ class CreateShippingLabelView(APIView):
         except Order.DoesNotExist:
             return Response({'error': 'Commande introuvable'}, status=status.HTTP_404_NOT_FOUND)
 
-        data = request.data
+        data      = request.data
         recipient = data.get('recipient', {})
-        shipment_id = data.get('shipment_id', 8)
 
         address_parts = recipient.get('address', '').split(' ', 1)
-        house_number = address_parts[0] if address_parts else ''
-        street = address_parts[1] if len(address_parts) > 1 else recipient.get('address', '')
+        house_number  = address_parts[0] if address_parts else ''
+        street        = address_parts[1] if len(address_parts) > 1 else recipient.get('address', '')
 
         payload = {
-            "parcel": {
-                "name": f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
-                "email": recipient.get('email', ''),
-                "telephone": recipient.get('phone', ''),
-                "address": street,
+            "apply_shipping_defaults": True,
+            "apply_shipping_rules": True,
+            "to_address": {
+                "name":         f"{recipient.get('firstName', '')} {recipient.get('lastName', '')}",
+                "address_line_1": street,
                 "house_number": house_number,
-                "city": recipient.get('city', ''),
-                "postal_code": recipient.get('zipCode', ''),
-                "country": recipient.get('country', 'FR'),
-                "weight": "1.000",
-                "shipment": {"id": shipment_id},
-                "request_label": True,
-                "order_number": order.reference,
-            }
+                "postal_code":  recipient.get('zipCode', ''),
+                "city":         recipient.get('city', ''),
+                "country_code": recipient.get('country', 'FR'),
+                "phone_number": recipient.get('phone', ''),
+                "email":        recipient.get('email', ''),
+            },
+            "parcels": [
+                {
+                    "weight":       "1.000",
+                    "order_number": order.reference,
+                }
+            ],
         }
 
-        public_key = settings.SENDCLOUD_PUBLIC_KEY
-        secret_key = settings.SENDCLOUD_SECRET_KEY
+        public_key  = settings.SENDCLOUD_PUBLIC_KEY
+        secret_key  = settings.SENDCLOUD_SECRET_KEY
         credentials = base64.b64encode(f"{public_key}:{secret_key}".encode()).decode()
 
         try:
             res = requests.post(
-                "https://panel.sendcloud.sc/api/v3/parcels",
+                "https://panel.sendcloud.sc/api/v3/shipments/create-announce",
                 json=payload,
                 headers={
                     "Authorization": f"Basic {credentials}",
                     "Content-Type": "application/json",
                 },
-                timeout=10
+                timeout=10,
             )
             res.raise_for_status()
-            parcel  = res.json().get('parcel', {})
-            label   = parcel.get('label', {})
-            pdf_url = (label.get('normal_printer') or [''])[0]
+            data   = res.json()
+            parcel = data.get('data', {}).get('parcels', [{}])[0]
+            label  = parcel.get('label_file', '')
 
-            order.label = pdf_url
+            order.label = label
             order.save()
 
-            return Response({'pdf_url': pdf_url, 'parcel_id': parcel.get('id')})
+            return Response({'pdf_url': label, 'parcel_id': parcel.get('id')})
         except requests.RequestException as e:
             error_detail = ''
             if hasattr(e, 'response') and e.response is not None:
