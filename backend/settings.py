@@ -126,7 +126,7 @@ REST_FRAMEWORK = {
 
 # --- SIMPLE JWT ---
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -134,6 +134,7 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
     'ALGORITHM': 'HS256',
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'TOKEN_OBTAIN_SERIALIZER': 'store.serializers.CustomTokenObtainPairSerializer',
 }
 
 # --- CORS ---
@@ -206,3 +207,22 @@ LOGGING = {
         'store': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
     },
 }
+
+# ── EMAIL ──────────────────────────────────────────────────────────────────
+EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST          = 'smtp.gmail.com'
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER')
+
+
+# ── STRIPE ──────────────────────────────────────────────────────────────────
+STRIPE_SECRET_KEY      = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET  = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+
+# ── SENDCLOUD ──────────────────────────────────────────────────────────────────
+SENDCLOUD_PUBLIC_KEY = os.environ.get('SENDCLOUD_PUBLIC_KEY', '')
+SENDCLOUD_SECRET_KEY = os.environ.get('SENDCLOUD_SECRET_KEY', '')
